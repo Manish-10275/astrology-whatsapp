@@ -7,6 +7,14 @@ from api.db.models.birth_profile import BirthProfile, TimeUncertaintyEnum
 from api.db.models.admin import AdminUser, AdminRole, ROLE_PERMISSIONS
 from api.db.models.audit import AuditEvent
 from api.db.models.deletion import DeletionRequest, DeletionStatus
+from api.db.models.conversation import (
+    Conversation,
+    ConversationStatus,
+    ConversationState,
+    ConversationMessage,
+    MessageDirection,
+    MessageSender,
+)
 
 __all__ = [
     "Base",
@@ -23,4 +31,10 @@ __all__ = [
     "AuditEvent",
     "DeletionRequest",
     "DeletionStatus",
+    "Conversation",
+    "ConversationStatus",
+    "ConversationState",
+    "ConversationMessage",
+    "MessageDirection",
+    "MessageSender",
 ]

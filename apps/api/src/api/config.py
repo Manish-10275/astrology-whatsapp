@@ -61,6 +61,41 @@ class Settings(BaseSettings):
     AUTH_MAX_FAILED_ATTEMPTS: int = Field(default=5, ge=1, le=20)
     AUTH_LOCKOUT_MINUTES: int = Field(default=15, ge=1, le=1440)
 
+    # WhatsApp Cloud API Integration
+    WHATSAPP_PHONE_NUMBER_ID: Optional[str] = Field(
+        default=None,
+        description="Meta WhatsApp Cloud API Phone Number ID"
+    )
+    WHATSAPP_ACCESS_TOKEN: Optional[SecretStr] = Field(
+        default=None,
+        description="Meta Graph API access token (System User permanent token)"
+    )
+    WHATSAPP_VERIFY_TOKEN: SecretStr = Field(
+        default=SecretStr("astrology-whatsapp-verify-token-dev"),
+        description="Meta webhook verification challenge token"
+    )
+    WHATSAPP_APP_SECRET: Optional[SecretStr] = Field(
+        default=None,
+        description="Meta App Secret for X-Hub-Signature-256 payload authentication"
+    )
+    WHATSAPP_API_VERSION: str = Field(default="v21.0")
+
+    # AI / LLM Orchestration
+    OPENAI_API_KEY: Optional[SecretStr] = Field(
+        default=None,
+        description="OpenAI API key for natural language interpretation"
+    )
+    OPENAI_MODEL: str = Field(
+        default="gpt-4o-mini",
+        description="OpenAI model for chat responses and interpretations"
+    )
+
+    # Ephemeral State & Redis (Optional / Graceful Fallback)
+    REDIS_URL: Optional[str] = Field(
+        default=None,
+        description="Redis connection URL for temporary lock / deduplication cache"
+    )
+
     @field_validator("ENCRYPTION_PRIMARY_KEY")
     def validate_encryption_key_length(cls, v: SecretStr) -> SecretStr:
         val = v.get_secret_value()

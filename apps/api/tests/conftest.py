@@ -18,6 +18,8 @@ os.environ["ENCRYPTION_KEY_VERSION"] = "v1"
 os.environ["ENCRYPTION_SECONDARY_KEYS"] = '{"v0": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"}'
 os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key-minimum-32-chars-long-here"
 os.environ["PHONE_HASH_SALT"] = "test-phone-hash-salt-32-chars-long-minimum"
+os.environ["WHATSAPP_VERIFY_TOKEN"] = "test-whatsapp-verify-token-12345"
+os.environ["WHATSAPP_APP_SECRET"] = "0123456789abcdef0123456789abcdef"
 
 from api.config import get_settings
 from api.db.base import Base
@@ -62,6 +64,8 @@ def clean_database():
     with engine.begin() as conn:
         conn.execute(
             text(
+                "DELETE FROM conversation_messages; "
+                "DELETE FROM conversations; "
                 "DELETE FROM audit_events; "
                 "DELETE FROM birth_profiles; "
                 "DELETE FROM consent_records; "
