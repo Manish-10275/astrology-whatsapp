@@ -1,0 +1,13 @@
+# Pinned runtime dependencies for astrology-engine
+pysweph==2.10.3.6
+pydantic==2.14.1
+pydantic-core==2.50.1
+timezonefinder==9.2.0
+timezonefinder-data==4.2026.5
+tzdata==2026.5
+typing-extensions==4.16.0
+annotated-types==0.8.0
+numpy==2.5.4
+cffi==2.1.1
+pycparser==3.12
+flatbuffers==25.12.19

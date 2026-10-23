@@ -1,0 +1,20 @@
+# Complete reproducible lockfile for astrology-engine (Python 3.12)
+annotated-types==0.8.0
+cffi==2.1.1
+colorama==0.4.6
+flatbuffers==25.12.19
+iniconfig==2.3.1
+numpy==2.5.4
+packaging==26.3
+pluggy==1.7.0
+pycparser==3.12
+pydantic==2.14.1
+pydantic-core==2.50.1
+pygments==2.21.0
+pysweph==2.10.3.6
+pytest==9.1.1
+timezonefinder==9.2.0
+timezonefinder-data==4.2026.5
+tzdata==2026.5
+typing-extensions==4.16.0
+typing-inspection==0.4.4

@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "astrology-engine"
+version = "0.1.0"
+description = "Deterministic astronomical and astrological calculation engine for Vedic and Western astrology."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "AGPL-2.0-or-later" }
+authors = [
+    { name = "Astrology WhatsApp Platform Engineering Team" }
+]
+dependencies = [
+    "pysweph>=2.10.3.6",
+    "pydantic>=2.10.0",
+    "timezonefinder>=9.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
