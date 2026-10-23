@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Deterministic astronomical and astrological calculation engine for Vedic and Western astrology."
 readme = "README.md"
 requires-python = ">=3.12"
-license = { text = "AGPL-2.0-or-later" }
+license = { text = "AGPL-3.0-or-later" }
 authors = [
     { name = "Astrology WhatsApp Platform Engineering Team" }
 ]
@@ -16,6 +16,7 @@ dependencies = [
     "pysweph>=2.10.3.6",
     "pydantic>=2.10.0",
     "timezonefinder>=9.0.0",
+    "tzdata>=2024.1; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]

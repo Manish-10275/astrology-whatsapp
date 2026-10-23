@@ -86,6 +86,7 @@ class PlanetPosition(BaseModel):
     degree_in_sign: float = Field(..., ge=0.0, lt=30.0, description="Degree within the current sign [0, 30)")
     house: Optional[int] = Field(None, ge=1, le=12, description="House number (1 to 12) if birth time is known")
     nakshatra: Optional[NakshatraInfo] = Field(None, description="Nakshatra details (Vedic only)")
+    ephemeris_mode: str = Field(default="moshier", description="'swiss' if using .se1 files, 'moshier' if using built-in Moshier analytical ephemeris")
 
 
 class HouseCusp(BaseModel):
@@ -123,6 +124,7 @@ class ChartRequest(BaseModel):
     elevation_meters: float = Field(default=0.0, ge=-500.0, le=9000.0)
     timezone_name: str = Field(..., description="IANA timezone identifier (e.g. 'Asia/Kolkata') or 'LMT' for Local Mean Time")
     timezone_offset_seconds: Optional[int] = Field(None, description="Optional explicit UTC offset in seconds override")
+    fold: int = Field(default=0, ge=0, le=1, description="Disambiguates duplicate local times during daylight saving fall-back (0 for first occurrence, 1 for second)")
     system: AstrologySystem = Field(default=AstrologySystem.VEDIC)
     ayanamsa: AyanamsaType = Field(default=AyanamsaType.LAHIRI)
     house_system: HouseSystemType = Field(default=HouseSystemType.WHOLE_SIGN)
@@ -151,5 +153,6 @@ class D1Chart(BaseModel):
     houses: list[HouseCusp] = Field(default_factory=list)
     planets: list[PlanetPosition] = Field(default_factory=list)
     houses_map: dict[int, list[str]] = Field(default_factory=dict, description="Map of house number -> list of planet names")
+    ephemeris_mode: str = Field(default="moshier", description="'swiss' if using .se1 files, 'moshier' if using built-in Moshier analytical ephemeris")
     time_uncertainty: TimeUncertainty
     calculation_hash: str = Field(..., description="Deterministic sha256 checksum of input coordinates and time")

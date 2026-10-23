@@ -38,7 +38,7 @@ def calculate_tropical_planet(
     """Calculates tropical position for a single planet."""
     eph = adapter or default_adapter
 
-    lon, lat, dist, speed_lon, is_retro = eph.calc_planet_ut(
+    lon, lat, dist, speed_lon, is_retro, ephe_mode = eph.calc_planet_ut(
         jd_ut=jd_ut,
         planet_name=planet_name,
         is_sidereal=False
@@ -58,7 +58,8 @@ def calculate_tropical_planet(
         sign_sanskrit=sign_sanskrit,
         degree_in_sign=deg_in_sign,
         house=None,
-        nakshatra=None
+        nakshatra=None,
+        ephemeris_mode=ephe_mode
     )
 
 

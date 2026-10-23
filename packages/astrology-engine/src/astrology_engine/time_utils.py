@@ -56,6 +56,7 @@ def compute_utc_datetime(
     timezone_name: str,
     longitude: Optional[float] = None,
     timezone_offset_seconds: Optional[int] = None,
+    fold: int = 0,
     time_uncertainty: TimeUncertainty = TimeUncertainty.EXACT
 ) -> Tuple[datetime, bool]:
     """Converts a local date and time into an unambiguous UTC datetime.
@@ -64,6 +65,7 @@ def compute_utc_datetime(
     - Standard IANA timezone strings (e.g., 'Asia/Kolkata', 'America/New_York')
     - 'LMT' (Local Mean Time) calculated directly from longitude (longitude * 240 seconds)
     - Explicit timezone offset in seconds (e.g. 19800 for UTC+5:30)
+    - Disambiguation of duplicate local times during daylight saving fall-back via `fold` (0 or 1)
     
     If birth_time is None or time_uncertainty is UNKNOWN, defaults to 12:00:00 (Noon) local time.
     
@@ -91,7 +93,7 @@ def compute_utc_datetime(
         effective_time = time(12, 0, 0)
         is_approximated = True
     else:
-        effective_time = birth_time
+        effective_time = birth_time.replace(fold=fold)
 
     # Combine date and time in the target local timezone
     local_dt = datetime.combine(birth_date, effective_time, tzinfo=tz)

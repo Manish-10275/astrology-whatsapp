@@ -25,13 +25,17 @@ def test_benchmark_j2000_astrodienst_reference():
     
     Expected Values:
     - Tropical Sun: 280.3689° (Capricorn 10° 22' 08")
+    - Tropical Moon: 223.3238° (Scorpio 13° 19' 26", speed ~12.06°/day)
     - Lahiri Ayanamsa: 23° 51' 25.53" (23.857092°)
     - Sidereal Sun (Lahiri): 256.5118° (Sagittarius 16° 30' 42")
-    - Tolerance: 0.001° (3.6 arcseconds)
+    - Sidereal Moon (Lahiri): 199.4667° (Libra 19° 28' 00", Swati Nakshatra, Pada 4)
+    - Planetary Tolerance: 0.005° (18 arcseconds)
+    - Lunar Tolerance: 0.01° (36 arcseconds, accounting for rapid lunar speed ~0.55°/hr)
     """
     utc_dt = datetime(2000, 1, 1, 12, 0, 0, tzinfo=ZoneInfo("UTC"))
     jd = compute_julian_day(utc_dt).jd_ut
 
+    # 1. Sun verification
     trop_sun = calculate_tropical_planet(jd, "Sun")
     assert abs(trop_sun.longitude - 280.3689) < 0.005, (
         f"Tropical Sun expected ~280.3689°, got {trop_sun.longitude}"
@@ -41,6 +45,24 @@ def test_benchmark_j2000_astrodienst_reference():
     assert abs(sid_sun.longitude - 256.5118) < 0.005, (
         f"Sidereal Sun expected ~256.5118°, got {sid_sun.longitude}"
     )
+
+    # 2. Moon verification (fastest moving body)
+    trop_moon = calculate_tropical_planet(jd, "Moon")
+    assert abs(trop_moon.longitude - 223.3238) < 0.01, (
+        f"Tropical Moon expected ~223.3238°, got {trop_moon.longitude}"
+    )
+    assert trop_moon.sign_name == "Scorpio"
+
+    sid_moon = calculate_sidereal_planet(jd, "Moon", ayanamsa=AyanamsaType.LAHIRI)
+    assert abs(sid_moon.longitude - 199.4667) < 0.01, (
+        f"Sidereal Moon expected ~199.4667°, got {sid_moon.longitude}"
+    )
+    assert sid_moon.sign_name == "Libra"
+    assert sid_moon.sign_sanskrit == "Tula"
+    assert sid_moon.nakshatra is not None
+    assert sid_moon.nakshatra.name == "Swati"
+    assert sid_moon.nakshatra.pada == 4
+    assert sid_moon.nakshatra.ruler == "Rahu"
 
 
 def test_benchmark_gandhi_vedic_natal_chart():

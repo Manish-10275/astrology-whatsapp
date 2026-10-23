@@ -46,6 +46,7 @@ def calculate_house_system_data(
     longitude: float,
     house_system: HouseSystemType = HouseSystemType.PLACIDUS,
     is_sidereal: bool = False,
+    ayanamsa: Optional[str] = None,
     adapter: Optional[SwissEphemerisAdapter] = None
 ) -> Tuple[List[HouseCusp], AscendantInfo, MidheavenInfo]:
     """Calculates house cusps, Ascendant (Lagna), and Midheaven (MC)."""
@@ -56,7 +57,8 @@ def calculate_house_system_data(
         lat=latitude,
         lon=longitude,
         house_system=house_system.value,
-        is_sidereal=is_sidereal
+        is_sidereal=is_sidereal,
+        ayanamsa=ayanamsa
     )
 
     # Build 12 HouseCusp models

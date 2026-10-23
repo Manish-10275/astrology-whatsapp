@@ -80,10 +80,13 @@ class SwissEphemerisAdapter:
             except Exception as e:
                 raise EphemerisError(f"Failed to set sidereal mode {ayanamsa}: {e}") from e
 
-    def get_ayanamsa_degrees(self, jd_ut: float) -> float:
+    def get_ayanamsa_degrees(self, jd_ut: float, ayanamsa: Optional[str] = None) -> float:
         """Returns the ayanamsa value in degrees for a given Julian Day."""
         with _EPHEMERIS_LOCK:
             try:
+                if ayanamsa:
+                    code = AYANAMSA_CODES[ayanamsa.lower()]
+                    swe.set_sid_mode(code)
                 return float(swe.get_ayanamsa_ut(jd_ut))
             except Exception as e:
                 raise EphemerisError(f"Failed to get ayanamsa for JD {jd_ut}: {e}") from e
@@ -92,12 +95,13 @@ class SwissEphemerisAdapter:
         self,
         jd_ut: float,
         planet_name: str,
-        is_sidereal: bool = False
-    ) -> Tuple[float, float, float, float, bool]:
+        is_sidereal: bool = False,
+        ayanamsa: Optional[str] = None
+    ) -> Tuple[float, float, float, float, bool, str]:
         """Calculates planetary position.
         
         Returns:
-            (longitude, latitude, distance_au, speed_longitude, is_retrograde)
+            (longitude, latitude, distance_au, speed_longitude, is_retrograde, ephemeris_mode)
         """
         if planet_name not in PLANET_IDS:
             raise EphemerisError(f"Unknown planet '{planet_name}'. Supported: {list(PLANET_IDS.keys())}")
@@ -109,6 +113,9 @@ class SwissEphemerisAdapter:
 
         with _EPHEMERIS_LOCK:
             try:
+                if is_sidereal and ayanamsa:
+                    code = AYANAMSA_CODES[ayanamsa.lower()]
+                    swe.set_sid_mode(code)
                 # swe.calc_ut returns (coords_tuple, return_flags, error_message)
                 coords, return_flags, err = swe.calc_ut(jd_ut, planet_id, flags)
             except Exception as e:
@@ -124,7 +131,10 @@ class SwissEphemerisAdapter:
         speed_lon = float(coords[3])
         is_retrograde = speed_lon < 0.0
 
-        return lon, lat, dist, speed_lon, is_retrograde
+        is_moshier = bool(return_flags & swe.FLG_MOSEPH)
+        ephe_mode = "moshier" if is_moshier else "swiss"
+
+        return lon, lat, dist, speed_lon, is_retrograde, ephe_mode
 
     def calc_houses(
         self,
@@ -132,7 +142,8 @@ class SwissEphemerisAdapter:
         lat: float,
         lon: float,
         house_system: str,
-        is_sidereal: bool = False
+        is_sidereal: bool = False,
+        ayanamsa: Optional[str] = None
     ) -> Tuple[List[float], float, float]:
         """Calculates house cusps, Ascendant, and Midheaven.
         
@@ -142,6 +153,7 @@ class SwissEphemerisAdapter:
             lon: Longitude (-180 to 180)
             house_system: 'placidus', 'whole_sign', or 'equal'
             is_sidereal: True to compute sidereal cusps and ascendant
+            ayanamsa: Optional ayanamsa name for sidereal mode
             
         Returns:
             (cusps_1_to_12, ascendant_degree, mc_degree)
@@ -155,6 +167,9 @@ class SwissEphemerisAdapter:
 
         with _EPHEMERIS_LOCK:
             try:
+                if is_sidereal and ayanamsa:
+                    code = AYANAMSA_CODES[ayanamsa.lower()]
+                    swe.set_sid_mode(code)
                 # swe.houses_ex returns (cusps_tuple, ascmc_tuple)
                 cusps, ascmc = swe.houses_ex(jd_ut, lat, lon, hsys_code, flags)
             except Exception as e:

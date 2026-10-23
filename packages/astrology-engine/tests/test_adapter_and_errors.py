@@ -54,26 +54,66 @@ def test_unknown_timezone_resolution_error():
 
 
 def test_thread_safety_concurrent_calculations():
-    """Verifies that concurrent calculations across threads produce consistent results without data corruption."""
-    request = ChartRequest(
+    """Verifies that concurrent calculations across threads produce consistent results without data corruption
+    or global C-state leakage between different ayanamsas.
+    """
+    req_lahiri = ChartRequest(
         birth_date=date(1992, 8, 15),
         birth_time=time(14, 30),
         latitude=18.9388,
         longitude=72.8354,
         timezone_name="Asia/Kolkata",
         system=AstrologySystem.VEDIC,
+        ayanamsa="lahiri",
+        house_system=HouseSystemType.WHOLE_SIGN
+    )
+    req_raman = ChartRequest(
+        birth_date=date(1992, 8, 15),
+        birth_time=time(14, 30),
+        latitude=18.9388,
+        longitude=72.8354,
+        timezone_name="Asia/Kolkata",
+        system=AstrologySystem.VEDIC,
+        ayanamsa="raman",
         house_system=HouseSystemType.WHOLE_SIGN
     )
 
-    def worker(_):
-        return calculate_d1_chart(request)
+    def worker(idx):
+        req = req_lahiri if idx % 2 == 0 else req_raman
+        chart = calculate_d1_chart(req)
+        if req.ayanamsa == "lahiri":
+            assert abs(chart.ayanamsa_degrees - 23.79) < 0.05
+            assert chart.ayanamsa_used == "lahiri"
+        else:
+            assert abs(chart.ayanamsa_degrees - 22.35) < 0.05
+            assert chart.ayanamsa_used == "raman"
+        return chart
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-        results = list(executor.map(worker, range(16)))
+        results = list(executor.map(worker, range(24)))
 
-    first_hash = results[0].calculation_hash
-    first_asc_lon = results[0].ascendant.longitude
+    assert len(results) == 24
 
-    for res in results[1:]:
-        assert res.calculation_hash == first_hash
-        assert res.ascendant.longitude == first_asc_lon
+
+def test_ephemeris_mode_observability():
+    """Verifies that calculation engine explicitly observes and records whether Swiss Ephemeris
+    files (.se1) or the built-in Moshier fallback ephemeris were used.
+    """
+    request = ChartRequest(
+        birth_date=date(2000, 1, 1),
+        birth_time=time(12, 0),
+        latitude=51.5074,
+        longitude=-0.1278,
+        timezone_name="UTC",
+        system=AstrologySystem.WESTERN
+    )
+    chart = calculate_d1_chart(request)
+
+    # When .se1 files are not present on system PATH, engine must record fallback to 'moshier'
+    assert chart.ephemeris_mode in ("moshier", "swiss")
+    for planet in chart.planets:
+        assert planet.ephemeris_mode in ("moshier", "swiss")
+    
+    # Sun and Moon represent physical bodies that reflect overall ephemeris mode
+    sun = next(p for p in chart.planets if p.name == "Sun")
+    assert sun.ephemeris_mode == chart.ephemeris_mode

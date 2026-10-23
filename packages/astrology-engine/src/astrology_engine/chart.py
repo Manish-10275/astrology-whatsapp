@@ -32,7 +32,8 @@ def generate_calculation_hash(request: ChartRequest) -> str:
         f"{request.birth_time.isoformat() if request.birth_time else 'UNKNOWN'}:"
         f"{request.latitude:.4f}:"
         f"{request.longitude:.4f}:"
-        f"{request.timezone_name}"
+        f"{request.timezone_name}:"
+        f"fold={request.fold}"
     )
     return hashlib.sha256(raw_str.encode("utf-8")).hexdigest()
 
@@ -54,6 +55,7 @@ def calculate_d1_chart(
         timezone_name=request.timezone_name,
         longitude=request.longitude,
         timezone_offset_seconds=request.timezone_offset_seconds,
+        fold=request.fold,
         time_uncertainty=request.time_uncertainty
     )
 
@@ -72,8 +74,7 @@ def calculate_d1_chart(
 
     if is_vedic:
         ayanamsa_name = request.ayanamsa.value
-        eph.set_sidereal_mode(ayanamsa_name)
-        ayanamsa_degrees = eph.get_ayanamsa_degrees(jd_info.jd_ut)
+        ayanamsa_degrees = eph.get_ayanamsa_degrees(jd_info.jd_ut, ayanamsa=ayanamsa_name)
         raw_planets = calculate_sidereal_planets(
             jd_ut=jd_info.jd_ut,
             ayanamsa=request.ayanamsa,
@@ -98,6 +99,7 @@ def calculate_d1_chart(
             longitude=request.longitude,
             house_system=request.house_system,
             is_sidereal=is_vedic,
+            ayanamsa=ayanamsa_name,
             adapter=eph
         )
         final_planets = assign_houses_to_planets(
@@ -116,6 +118,8 @@ def calculate_d1_chart(
         if p.house is not None and 1 <= p.house <= 12:
             houses_map[p.house].append(p.name)
 
+    ephemeris_mode = raw_planets[0].ephemeris_mode if raw_planets else "moshier"
+
     return D1Chart(
         system=request.system,
         ayanamsa_used=ayanamsa_name,
@@ -127,6 +131,7 @@ def calculate_d1_chart(
         houses=houses,
         planets=final_planets,
         houses_map=houses_map,
+        ephemeris_mode=ephemeris_mode,
         time_uncertainty=effective_uncertainty,
         calculation_hash=calc_hash
     )

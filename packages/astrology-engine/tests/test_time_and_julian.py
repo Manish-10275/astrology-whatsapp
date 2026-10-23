@@ -69,6 +69,57 @@ def test_historical_daylight_saving_shifts():
     assert utc_winter.day == 15
 
 
+def test_dst_fall_back_ambiguous_time_and_ascendant_shift():
+    """During daylight saving 'fall-back' (e.g. 2023-11-05 in New York), 01:30 AM occurs twice:
+    - fold=0: 01:30 EDT (UTC-4) -> 05:30:00 UTC
+    - fold=1: 01:30 EST (UTC-5) -> 06:30:00 UTC
+    
+    A 1-hour time error shifts the Ascendant by ~15 degrees, altering the Rising Sign or houses.
+    """
+    from astrology_engine.houses import calculate_house_system_data
+    from astrology_engine.models import HouseSystemType
+
+    utc_fold0, _ = compute_utc_datetime(
+        birth_date=date(2023, 11, 5),
+        birth_time=time(1, 30, 0),
+        timezone_name="America/New_York",
+        fold=0
+    )
+    utc_fold1, _ = compute_utc_datetime(
+        birth_date=date(2023, 11, 5),
+        birth_time=time(1, 30, 0),
+        timezone_name="America/New_York",
+        fold=1
+    )
+
+    assert utc_fold0.hour == 5 and utc_fold0.minute == 30
+    assert utc_fold1.hour == 6 and utc_fold1.minute == 30
+
+    jd0 = compute_julian_day(utc_fold0).jd_ut
+    jd1 = compute_julian_day(utc_fold1).jd_ut
+
+    _, asc0, _ = calculate_house_system_data(jd0, 40.7128, -74.0060, HouseSystemType.PLACIDUS)
+    _, asc1, _ = calculate_house_system_data(jd1, 40.7128, -74.0060, HouseSystemType.PLACIDUS)
+
+    # 1 hour shift in sidereal rotation produces ~11° to ~16° difference in Ascendant (varying by latitude & ascension rate)
+    asc_diff = (asc1.longitude - asc0.longitude) % 360.0
+    assert 10.0 < asc_diff < 16.0, f"Expected ~12°-15° shift, got {asc_diff}°"
+
+
+def test_angular_difference_wraparound():
+    """Verifies circular angular difference logic around the 0°/360° Aries boundary."""
+    def circular_diff(a: float, b: float) -> float:
+        d = abs(a - b) % 360.0
+        return d if d <= 180.0 else 360.0 - d
+
+    # 0.05° and 359.95° are only 0.10° apart on the circle
+    assert abs(circular_diff(0.05, 359.95) - 0.10) < 1e-6
+    # 10° and 350° are 20° apart
+    assert abs(circular_diff(10.0, 350.0) - 20.0) < 1e-6
+    # Exact opposite 0° and 180°
+    assert abs(circular_diff(0.0, 180.0) - 180.0) < 1e-6
+
+
 def test_unknown_birth_time_approximation():
     """When birth time is unknown, compute_utc_datetime defaults to 12:00:00 local time."""
     utc_dt, is_approx = compute_utc_datetime(

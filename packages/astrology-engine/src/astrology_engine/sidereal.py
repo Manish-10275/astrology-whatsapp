@@ -52,12 +52,12 @@ def calculate_sidereal_planet(
 ) -> PlanetPosition:
     """Calculates sidereal position and Nakshatra for a single planet using the given ayanamsa."""
     eph = adapter or default_adapter
-    eph.set_sidereal_mode(ayanamsa.value)
 
-    lon, lat, dist, speed_lon, is_retro = eph.calc_planet_ut(
+    lon, lat, dist, speed_lon, is_retro, ephe_mode = eph.calc_planet_ut(
         jd_ut=jd_ut,
         planet_name=planet_name,
-        is_sidereal=True
+        is_sidereal=True,
+        ayanamsa=ayanamsa.value
     )
 
     sign_num, sign_name, sign_sanskrit, deg_in_sign = longitude_to_sign(lon)
@@ -75,7 +75,8 @@ def calculate_sidereal_planet(
         sign_sanskrit=sign_sanskrit,
         degree_in_sign=deg_in_sign,
         house=None,
-        nakshatra=nakshatra
+        nakshatra=nakshatra,
+        ephemeris_mode=ephe_mode
     )
 
 
@@ -116,7 +117,8 @@ def calculate_sidereal_planets(
                 sign_sanskrit=sign_sanskrit,
                 degree_in_sign=deg_in_sign,
                 house=None,
-                nakshatra=ketu_nakshatra
+                nakshatra=ketu_nakshatra,
+                ephemeris_mode=rahu.ephemeris_mode
             )
             planets.append(ketu_pos)
 
