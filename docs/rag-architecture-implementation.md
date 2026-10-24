@@ -2,7 +2,7 @@
 
 ## Scope
 
-This first slice establishes knowledge-RAG storage and retrieval primitives. It intentionally leaves the WhatsApp message flow unchanged. RAG is disabled by default until a source corpus has been reviewed, ingested and evaluated.
+This slice establishes knowledge-RAG storage/retrieval and an opt-in WhatsApp path for general educational astrology questions. RAG is disabled by default until a source corpus has been reviewed, ingested and evaluated. Existing onboarding, personalized calculation commands and the deterministic astrology engine remain unchanged.
 
 ## Target request flow
 
@@ -36,7 +36,7 @@ The initial embedding adapter targets OpenAI text-embedding-3-small with 1536 di
 
 Retrieved passages are reference data, not instructions. The future generator must ignore commands contained inside retrieved documents, use them only as evidence, and express uncertainty when evidence is missing or conflicting. Bound the context size, restrict retrieval to approved sources, and allow citations only from the retrieved source ID set. Do not expose arbitrary source text as trusted system instructions.
 
-The initial retriever filters active/approved status, language and astrology tradition before similarity ranking. It does not yet implement lexical/hybrid search, reranking or final-response citation validation; the related configuration flag is reserved and remains off.
+The retriever filters active/approved status, language and astrology tradition before similarity ranking. The first answer path validates citations against retrieved source IDs and appends only cited source metadata. Lexical/hybrid search, reranking and broader evaluation remain future work; the related configuration flag is reserved and remains off.
 
 ## Rollout
 
@@ -44,7 +44,7 @@ The initial retriever filters active/approved status, language and astrology tra
 2. Ingest a small, manually reviewed corpus with sources tagged by language, tradition and topic.
 3. Test duplicate ingestion, source updates, review-state changes, language/tradition filters and empty retrieval.
 4. Measure retrieval relevance on a curated query set before enabling user-facing generation.
-5. Add planner/orchestrator integration and deterministic tool routing behind RAG_ENABLED.
+5. Expand the current opt-in educational routing into a fuller planner/orchestrator while preserving deterministic tool routing.
 6. Implement consent-gated user memory separately, including forget/delete and cross-user isolation tests.
 7. Enable for internal test numbers, evaluate failures, then roll out gradually.
 

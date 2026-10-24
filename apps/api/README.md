@@ -124,6 +124,6 @@ The initial retrieval layer lives under src/api/rag/. It provides heading-aware 
 
 Review source accuracy, rights/licensing, language and astrology tradition before ingestion. Draft and rejected sources are never retrieved. The migration creates the PostgreSQL vector extension and HNSW cosine index; the database server must have pgvector installed and the migration role must be permitted to create the extension.
 
-RAG is disabled by default (RAG_ENABLED=false) and is not yet connected to the WhatsApp webhook. MEMORY_ENABLED is reserved and must remain false until consent checks, memory controls and deletion lifecycle integration are implemented. User birth details remain in the existing encrypted profile and must never be placed in the public knowledge index.
+RAG is disabled by default (RAG_ENABLED=false). When explicitly enabled, educational astrology questions in an established reading conversation can use the curated retrieval path; existing personalized calculation commands continue through the deterministic handlers. MEMORY_ENABLED is reserved and must remain false until consent checks, memory controls and deletion lifecycle integration are implemented. User birth details remain in the existing encrypted profile and must never be placed in the public knowledge index.
 
 See the RAG implementation plan at ../../docs/rag-architecture-implementation.md for rollout, privacy boundaries and evaluation requirements.
