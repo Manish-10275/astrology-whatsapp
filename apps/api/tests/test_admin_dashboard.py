@@ -1,6 +1,7 @@
 """Tests for internal admin dashboard endpoints, diagnostics, conversation traces, and RBAC."""
 
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import date, time, datetime, timezone
@@ -13,7 +14,7 @@ from api.security.token import create_access_token
 from api.security.encryption import compute_phone_hash, encrypt_field
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def super_admin(db_session: AsyncSession) -> AdminUser:
     admin = AdminUser(
         username="super_dash",
@@ -28,7 +29,7 @@ async def super_admin(db_session: AsyncSession) -> AdminUser:
     return admin
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def support_admin(db_session: AsyncSession) -> AdminUser:
     admin = AdminUser(
         username="support_dash",
