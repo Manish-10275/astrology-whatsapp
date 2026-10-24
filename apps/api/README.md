@@ -116,3 +116,14 @@ Run the full persistence and security test suite against disposable PostgreSQL:
 $env:PYTHONPATH='apps/api/src'
 uv run --python .venv/Scripts/python.exe pytest apps/api/tests/ -v
 ```
+
+
+## Curated Astrology Knowledge RAG (feature-flagged)
+
+The initial retrieval layer lives under src/api/rag/. It provides heading-aware Markdown chunking, an OpenAI embedding adapter, reviewed-source metadata, PostgreSQL/pgvector retrieval filtered by language and astrology tradition, bounded source-attributed context, and transactional ingestion primitives.
+
+Review source accuracy, rights/licensing, language and astrology tradition before ingestion. Draft and rejected sources are never retrieved. The migration creates the PostgreSQL vector extension and HNSW cosine index; the database server must have pgvector installed and the migration role must be permitted to create the extension.
+
+RAG is disabled by default (RAG_ENABLED=false) and is not yet connected to the WhatsApp webhook. MEMORY_ENABLED is reserved and must remain false until consent checks, memory controls and deletion lifecycle integration are implemented. User birth details remain in the existing encrypted profile and must never be placed in the public knowledge index.
+
+See the RAG implementation plan at ../../docs/rag-architecture-implementation.md for rollout, privacy boundaries and evaluation requirements.

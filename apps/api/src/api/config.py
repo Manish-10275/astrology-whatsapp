@@ -114,6 +114,16 @@ class Settings(BaseSettings):
         description="OpenAI model for chat responses and interpretations"
     )
 
+    # Curated astrology knowledge RAG. Disabled until a reviewed corpus is ingested.
+    RAG_ENABLED: bool = Field(default=False, description="Enable curated astrology knowledge retrieval")
+    RAG_EMBEDDING_MODEL: str = Field(default="text-embedding-3-small")
+    RAG_EMBEDDING_DIMENSIONS: int = Field(default=1536, ge=1536, le=1536)
+    RAG_TOP_K: int = Field(default=5, ge=1, le=20)
+    RAG_CANDIDATE_K: int = Field(default=20, ge=1, le=100)
+    RAG_CONTEXT_MAX_CHARS: int = Field(default=9000, ge=500, le=30000)
+    RAG_ENABLE_HYBRID_SEARCH: bool = Field(default=False, description="Reserved for evaluated lexical retrieval")
+    MEMORY_ENABLED: bool = Field(default=False, description="Reserved; consent-gated user memory is not wired into chat")
+
     # Ephemeral State & Redis (Optional / Graceful Fallback)
     REDIS_URL: Optional[str] = Field(
         default=None,
