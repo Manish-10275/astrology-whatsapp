@@ -19,8 +19,29 @@ from astrology_engine.models import (
     ZODIAC_SIGNS,
     NAKSHATRAS,
     NAKSHATRA_LORDS,
+    AntardashaPeriod,
+    MahadashaPeriod,
+    VimshottariDashaResult,
+    TithiInfo,
+    YogaInfo,
+    KaranaInfo,
+    PanchangResult,
+    KootaScore,
+    AshtakootaResult,
+    TransitPlanet,
+    TransitAnalysisResult,
+    NavamsaPlanet,
+    NavamsaChart,
+    WesternAspect,
+    WesternChartAnalysis,
 )
 from astrology_engine.chart import calculate_d1_chart, generate_calculation_hash
+from astrology_engine.dasha import calculate_vimshottari_dasha
+from astrology_engine.panchang import calculate_panchang
+from astrology_engine.compatibility import calculate_ashtakoota
+from astrology_engine.transits import calculate_transits
+from astrology_engine.navamsa import calculate_navamsa_chart, calculate_navamsa_planet
+from astrology_engine.western import calculate_western_aspects, analyze_western_chart
 from astrology_engine.time_utils import (
     compute_utc_datetime,
     compute_julian_day,
@@ -77,9 +98,32 @@ __all__ = [
     "ZODIAC_SIGNS",
     "NAKSHATRAS",
     "NAKSHATRA_LORDS",
+    "AntardashaPeriod",
+    "MahadashaPeriod",
+    "VimshottariDashaResult",
+    "TithiInfo",
+    "YogaInfo",
+    "KaranaInfo",
+    "PanchangResult",
+    "KootaScore",
+    "AshtakootaResult",
+    "TransitPlanet",
+    "TransitAnalysisResult",
+    "NavamsaPlanet",
+    "NavamsaChart",
+    "WesternAspect",
+    "WesternChartAnalysis",
     # Chart API
     "calculate_d1_chart",
     "generate_calculation_hash",
+    "calculate_vimshottari_dasha",
+    "calculate_panchang",
+    "calculate_ashtakoota",
+    "calculate_transits",
+    "calculate_navamsa_chart",
+    "calculate_navamsa_planet",
+    "calculate_western_aspects",
+    "analyze_western_chart",
     # Astronomical & Geocoding Utilities
     "compute_utc_datetime",
     "compute_julian_day",
