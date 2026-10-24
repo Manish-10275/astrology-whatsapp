@@ -41,6 +41,7 @@ from api.services.astrology_service import (
     generate_daily_horoscope_for_profile,
     detect_language,
 )
+from api.services.knowledge_rag import answer_knowledge_question, is_general_knowledge_question
 
 logger = logging.getLogger("api.routers.webhook_whatsapp")
 
@@ -605,6 +606,20 @@ async def process_conversational_state(
 
     if profile:
         details = profile.get_decrypted_details()
+
+        # General educational questions use curated RAG, while personalized requests
+        # and deterministic calculation commands continue through their existing paths.
+        if get_settings().RAG_ENABLED and is_general_knowledge_question(clean_text):
+            knowledge_reply = await answer_knowledge_question(
+                session=session,
+                query=clean_text,
+                lang=lang,
+                astrology_system=(
+                    "western" if astrology_sys == AstrologySystem.WESTERN else "vedic"
+                ),
+            )
+            if knowledge_reply:
+                return knowledge_reply
 
         # Check for Compatibility Trigger
         if any(k in lowered for k in ("compatibility", "kundli milan", "milan", "match kundli", "matchmaking", "gun milan")):
