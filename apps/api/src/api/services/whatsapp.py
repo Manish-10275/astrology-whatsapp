@@ -8,6 +8,13 @@ from typing import Optional, Dict, Any, Set
 import httpx
 
 from api.config import get_settings
+from api.services.whatsapp_templates import (
+    send_whatsapp_template,
+    WhatsAppTemplateError,
+    WhatsAppTemplateValidationError,
+    WhatsAppTemplateDeliveryError,
+    DailyHoroscopeTemplatePayload,
+)
 
 logger = logging.getLogger("api.services.whatsapp")
 
