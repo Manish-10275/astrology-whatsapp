@@ -79,6 +79,30 @@ class Settings(BaseSettings):
         description="Meta App Secret for X-Hub-Signature-256 payload authentication"
     )
     WHATSAPP_API_VERSION: str = Field(default="v21.0")
+    WHATSAPP_TEMPLATE_DAILY_HOROSCOPE: str = Field(
+        default="daily_horoscope_update",
+        description="Approved Meta message template name for proactive daily horoscopes"
+    )
+    WHATSAPP_USE_TEMPLATES_FOR_PROACTIVE: bool = Field(
+        default=True,
+        description="Whether to use pre-approved Meta message templates for proactive scheduled messages"
+    )
+
+    # Automated Horoscope Scheduler & Dispatch Security
+    SCHEDULER_SECRET_TOKEN: Optional[SecretStr] = Field(
+        default=None,
+        description="Dedicated pre-shared secret token for triggering the horoscope batch dispatch endpoint"
+    )
+    ENABLE_BACKGROUND_SCHEDULER: bool = Field(
+        default=False,
+        description="Whether to start an in-process background scheduler worker during application lifespan"
+    )
+    SCHEDULER_CHECK_INTERVAL_SECONDS: int = Field(
+        default=300,
+        ge=10,
+        le=86400,
+        description="Interval in seconds between background scheduler checks"
+    )
 
     # AI / LLM Orchestration
     OPENAI_API_KEY: Optional[SecretStr] = Field(
@@ -142,9 +166,15 @@ class Settings(BaseSettings):
 _settings: Optional[Settings] = None
 
 
-def get_settings() -> Settings:
+def get_settings(reload: bool = False) -> Settings:
     """Singleton getter for application settings."""
     global _settings
-    if _settings is None:
+    if _settings is None or reload:
         _settings = Settings()
     return _settings
+
+
+def clear_settings_cache() -> None:
+    """Clears the cached settings singleton for testing."""
+    global _settings
+    _settings = None
