@@ -18,6 +18,7 @@ if str(SRC_DIR) not in sys.path:
 from api.config import get_settings
 from api.db.base import Base
 import api.db.models  # noqa: F401 - registers all ORM models to Base.metadata
+import api.rag.models  # noqa: F401 - registers RAG ORM models for migration autogeneration
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
