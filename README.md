@@ -35,9 +35,13 @@ Designed from first principles to combine **high-precision deterministic astrono
   - Transits & Sade Sati ("current transits", "sade sati status")
   - Today's Panchang ("aaj ka panchang", "tithi today")
 - **Multilingual Support:** Automatic language detection for English, Hindi (Devanagari script), and Hinglish (code-switching).
-- **Daily Horoscope Scheduling:**
+- **Daily Horoscope Scheduling & Proactive WhatsApp Templates:**
   - Conversational opt-in ("subscribe horoscope") and pause ("unsubscribe horoscope").
   - Idempotent batch runner (`dispatch_daily_horoscopes`) guaranteeing zero duplicate sends on the same calendar day.
+  - Timezone-aware local delivery hour matching and concurrency locking.
+  - Pre-approved Meta Message Templates support (`daily_horoscope_update`) for proactive 24-hr customer care window compliance.
+  - Dual endpoint authentication: pre-shared `X-Scheduler-Token` or Admin JWT with `dashboard:trigger`.
+  - Built-in async worker daemon toggle (`ENABLE_BACKGROUND_SCHEDULER`).
 
 ### 3. Privacy-by-Design & Security (`api.security`)
 - **Zero Raw PII Storage:** Phone numbers are pseudonymized with HMAC-SHA256 (`phone_hash`) and encrypted at rest with AES-256-GCM.
@@ -47,12 +51,13 @@ Designed from first principles to combine **high-precision deterministic astrono
   - Right-to-Erasure atomic cascade deletion.
   - PII masking on all administrative views and log redaction.
 
-### 4. Internal Admin Dashboard & Operational Controls (`api.routers`)
+### 4. Internal Admin Web Dashboard & Operational Controls (`/admin`)
+- **Visual Web Dashboard (`/admin`):** Fully integrated, lightweight single-page operational dashboard served directly by FastAPI.
 - **Role-Based Access Control (RBAC):** Super Admin, Support, Astrology QA, and Compliance roles with granular permissions.
 - **Operational Metrics (`/api/v1/admin/dashboard/stats`):** Total users, active users, opt-in horoscope count, conversation/message volumes, astrology system and language distributions.
 - **Conversation Traces (`/api/v1/admin/dashboard/conversations/{id}/trace`):** Authorized diagnostic inspection with decrypted previews and masked phone hashes.
 - **Subsystem Diagnostics (`/api/v1/admin/dashboard/diagnostics`):** Real-time health status for PostgreSQL, Swiss Ephemeris, OpenAI, and WhatsApp.
-- **Manual Batch Trigger (`/api/v1/schedules/daily-horoscopes/dispatch`):** Super Admin endpoint for triggering daily horoscope dispatch batches.
+- **Manual Batch Trigger (`/api/v1/schedules/daily-horoscopes/dispatch`):** Super Admin / secret-token endpoint for triggering daily horoscope dispatch batches.
 
 ---
 
@@ -75,8 +80,9 @@ astrology-whatsapp/
 │       │   │   ├── schedules.py     # Horoscope dispatch endpoints
 │       │   │   └── webhook_whatsapp.py # Meta webhook & state machine
 │       │   ├── security/            # AES-256-GCM encryption, HMAC, RBAC, JWT
-│       │   └── services/            # WhatsApp transport, scheduler & grounding
-│       └── tests/                   # 60 async API & webhook integration tests
+│       │   ├── services/            # WhatsApp templates, scheduler & grounding
+│       │   └── static/admin/        # Built-in internal admin web dashboard SPA
+│       └── tests/                   # 77 async API, template, scheduler & UI tests
 ├── packages/
 │   └── astrology-engine/            # Deterministic Astronomical Package
 │       ├── src/astrology_engine/

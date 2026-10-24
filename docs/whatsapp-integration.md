@@ -159,7 +159,79 @@ Once configured, send a WhatsApp message to your WhatsApp Business phone number:
 
 ---
 
-## 7. Running Automated Verification
+## 7. Meta WhatsApp Message Templates (Proactive 24-hr Window Messaging)
+
+Meta's WhatsApp Cloud API strictly regulates outbound messaging:
+- **Customer Care Window (24 hours):** While the user is actively chatting, free-form text messages (`send_whatsapp_text`) can be exchanged.
+- **Proactive / Scheduled Delivery (> 24 hours):** When sending scheduled daily horoscopes to users who have not messaged within 24 hours, pre-approved **Meta Message Templates** must be used (`send_whatsapp_template`).
+
+### Daily Horoscope Template Contract
+In Meta Business Manager, register the utility template:
+- **Template Name:** `daily_horoscope_update` (configurable via `WHATSAPP_TEMPLATE_DAILY_HOROSCOPE`)
+- **Category:** `UTILITY`
+- **Languages:** `en_US` (English), `hi` (Hindi)
+- **Header:** None
+- **Body Text:**
+  ```text
+  Hello {{1}}, here is your personalized {{2}} daily horoscope:
+  
+  {{3}}
+  
+  {{4}}
+  
+  Reply anytime to explore transits, dasha, or compatibility!
+  ```
+- **Body Parameters (4 required):**
+  1. `user_name`: Client name or friendly greeting (e.g., "Manish")
+  2. `date_str`: Target horoscope date (e.g., "24 Oct 2026")
+  3. `sign_summary`: Astrological system & Moon sign summary (e.g., "Vedic Moon in Aries (Mesh) - Ashwini")
+  4. `horoscope_text`: Personalized daily guidance (up to 1024 characters)
+
+---
+
+## 8. Automated Daily Horoscope Scheduling & Dispatch Security
+
+### Security: Dedicated Secret Token Authentication
+The batch dispatch endpoint `POST /api/v1/schedules/daily-horoscopes/dispatch` is secured against unauthenticated access:
+1. **Pre-Shared Service Secret:** An external runner (Cloud Scheduler / Kubernetes CronJob) passes the header:
+   ```bash
+   X-Scheduler-Token: <your_SCHEDULER_SECRET_TOKEN>
+   ```
+2. **Admin JWT:** An authenticated administrative user with `dashboard:trigger` permission can trigger it via Bearer token.
+3. Requests lacking both credentials are fail-closed and rejected with `401 Unauthorized`.
+
+### External Cloud Scheduler Configuration (Production)
+Configure **Google Cloud Scheduler** or **AWS EventBridge** to invoke the endpoint at the top of every hour:
+- **URL:** `https://<api-domain>/api/v1/schedules/daily-horoscopes/dispatch`
+- **Method:** `POST`
+- **Headers:** `X-Scheduler-Token: <your_secret>`
+- **Query Parameters (Optional):**
+  - `target_hour`: (e.g., `7` for 07:00 AM user local time matching).
+
+### In-Process Background Scheduler (Alternative)
+For simple single-instance deployments, enable the built-in async worker in `apps/api/.env`:
+```bash
+ENABLE_BACKGROUND_SCHEDULER=true
+SCHEDULER_CHECK_INTERVAL_SECONDS=300
+```
+
+---
+
+## 9. Internal Admin Web Dashboard (`/admin`)
+
+The platform includes an internal administration dashboard served directly by the FastAPI backend at `/admin`:
+- **URL:** `http://localhost:8000/admin` (or `https://<domain>/admin`)
+- **Authentication:** Admin username and password (e.g., seeded via `python -m api.bootstrap_admin`).
+- **Features:**
+  - Real-time operational metrics: total users, active users, horoscope opt-in counts, conversation volume.
+  - Subsystem diagnostics: PostgreSQL connection, Swiss Ephemeris mode, OpenAI key readiness, WhatsApp mode, AES-256-GCM encryption readiness.
+  - Daily Horoscope Scheduler control panel: date picker, manual batch trigger, execution results preview.
+  - Conversation traces: inspect user conversations with pseudonymized IDs, masked phone hashes, and safe message previews.
+- **Defensive Headers:** Served with `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: strict-origin-when-cross-origin`.
+
+---
+
+## 10. Running Automated Verification
 
 To run all 46 API tests (including Meta challenge verification, HMAC signature validation, deduplication, and multi-turn conversational flow):
 
