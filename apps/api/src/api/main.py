@@ -15,6 +15,8 @@ from api.routers.auth import router as auth_router
 from api.routers.admin_users import router as admin_users_router
 from api.routers.privacy import router as privacy_router
 from api.routers.webhook_whatsapp import router as whatsapp_router
+from api.routers.schedules import router as schedules_router
+from api.routers.admin_dashboard import router as admin_dashboard_router
 
 logger = logging.getLogger("api.main")
 
@@ -91,6 +93,8 @@ def create_app() -> FastAPI:
     app.include_router(admin_users_router)
     app.include_router(privacy_router)
     app.include_router(whatsapp_router)
+    app.include_router(schedules_router)
+    app.include_router(admin_dashboard_router)
 
     return app
 

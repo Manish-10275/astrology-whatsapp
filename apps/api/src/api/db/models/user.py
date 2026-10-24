@@ -1,10 +1,10 @@
 """User identity and preference models."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from typing import Optional, List
 from enum import Enum
-from sqlalchemy import String, Text, DateTime, Enum as SQLEnum, ForeignKey
+from sqlalchemy import String, Text, DateTime, Date, Boolean, Enum as SQLEnum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.db.base import Base
@@ -75,6 +75,11 @@ class User(Base):
         lazy="selectin"
     )
 
+    def get_decrypted_phone(self) -> str:
+        """Decrypts and returns the E.164 formatted phone number."""
+        from api.security.encryption import decrypt_field
+        return decrypt_field(self.encrypted_phone)
+
 
 class UserPreferences(Base):
     """User astrological and language settings."""
@@ -96,6 +101,9 @@ class UserPreferences(Base):
     auto_detect_language: Mapped[bool] = mapped_column(default=True, nullable=False)
     ayanamsa: Mapped[str] = mapped_column(String(32), default="lahiri", nullable=False)
     house_system: Mapped[str] = mapped_column(String(32), default="placidus", nullable=False)
+    daily_horoscope_opt_in: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    horoscope_delivery_time: Mapped[str] = mapped_column(String(5), default="07:00", nullable=False)
+    last_horoscope_sent_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

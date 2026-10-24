@@ -34,6 +34,12 @@ from api.services.astrology_service import (
     resolve_birthplace,
     compute_astrology_chart,
     generate_astrology_reading,
+    format_dasha_reading,
+    format_transits_reading,
+    format_panchang_reading,
+    format_compatibility_reading,
+    generate_daily_horoscope_for_profile,
+    detect_language,
 )
 
 logger = logging.getLogger("api.routers.webhook_whatsapp")
@@ -172,7 +178,8 @@ async def receive_whatsapp_webhook(
         user_pref = UserPreferences(
             user_id=user.id,
             astrology_system=AstrologySystemEnum.VEDIC,
-            preferred_language="en"
+            preferred_language="en",
+            daily_horoscope_opt_in=False
         )
         session.add(user_pref)
         await session.commit()
@@ -247,10 +254,25 @@ async def process_conversational_state(
     user_input: str,
     session: AsyncSession
 ) -> str:
-    """Core state machine transitioning through consent, profile collection, and reading generation."""
+    """Core state machine transitioning through consent, profile collection, system switching, and reading generation."""
     clean_text = user_input.strip()
     lowered = clean_text.lower()
     meta = dict(conversation.state_metadata or {})
+
+    # Detect user language
+    detected_lang = detect_language(clean_text)
+    pref: Optional[UserPreferences] = user.preferences
+    if pref and pref.auto_detect_language and detected_lang in ("hi", "hinglish"):
+        pref.preferred_language = detected_lang
+        await session.commit()
+
+    lang = pref.preferred_language if pref else detected_lang
+    user_system = pref.astrology_system if pref else AstrologySystemEnum.VEDIC
+    astrology_sys = (
+        AstrologySystem.WESTERN
+        if user_system == AstrologySystemEnum.WESTERN
+        else AstrologySystem.VEDIC
+    )
 
     # Check active consent record
     consent_stmt = select(ConsentRecord).where(
@@ -261,8 +283,8 @@ async def process_conversational_state(
     )
     active_consent = (await session.execute(consent_stmt)).scalars().first()
 
-    # If user revokes consent at any time:
-    if lowered in ("revoke consent", "stop consent", "delete my data", "delete data"):
+    # ── Global Intent 1: Revoke Consent / Delete Data ────────────────────────
+    if lowered in ("revoke consent", "stop consent", "delete my data", "delete data", "erase my data"):
         if active_consent:
             active_consent.revoked_at = datetime.now(timezone.utc)
             await session.commit()
@@ -275,10 +297,146 @@ async def process_conversational_state(
             "Reply 'YES' if you wish to start fresh."
         )
 
+    # ── Global Intent 2: System Selection & Switching ────────────────────────
+    if any(k in lowered for k in ("switch to western", "use western", "change to western", "/system western")):
+        if pref:
+            pref.astrology_system = AstrologySystemEnum.WESTERN
+            await session.commit()
+        return (
+            "✨ Astrological system switched to **Western Astrology** (Tropical Zodiac & Placidus houses). "
+            "Your upcoming readings and daily horoscopes will now be presented using Western astrological methods."
+        )
+
+    if any(k in lowered for k in ("switch to vedic", "use vedic", "change to vedic", "/system vedic")):
+        if pref:
+            pref.astrology_system = AstrologySystemEnum.VEDIC
+            await session.commit()
+        return (
+            "🕉️ Astrological system switched to **Vedic Astrology (Jyotish)** (Sidereal Zodiac, Lahiri Ayanamsa & Nakshatras). "
+            "Your upcoming readings and daily horoscopes will now be presented using Vedic traditions."
+        )
+
+    # ── Global Intent 3: Daily Horoscope Subscription / Opt-in Management ────
+    if ("horoscope" in lowered or "rashifal" in lowered) and any(k in lowered for k in ("unsubscribe", "pause", "stop", "cancel", "turn off", "opt out", "opt-out")):
+        if pref:
+            pref.daily_horoscope_opt_in = False
+            await session.commit()
+        return (
+            "🔕 **Daily Horoscope Paused.**\n\n"
+            "You will no longer receive scheduled morning horoscopes. "
+            "You can still request an on-demand horoscope anytime by replying 'daily horoscope'!"
+        )
+
+    if ("horoscope" in lowered or "rashifal" in lowered) and any(k in lowered for k in ("subscribe", "opt in", "opt-in", "start daily", "send daily")):
+        if pref:
+            pref.daily_horoscope_opt_in = True
+            await session.commit()
+        delivery_time = pref.horoscope_delivery_time if pref else "07:00"
+        return (
+            f"🔔 **Daily Horoscope Subscribed!**\n\n"
+            f"You will now automatically receive your personalized horoscope every morning at {delivery_time} UTC. "
+            "To pause or unsubscribe at any time, just reply 'unsubscribe horoscope'."
+        )
+
+    # ── Global Intent 4: Recalculate / Update Birth Details ───────────────────
+    if any(k in lowered for k in ("new chart", "update birth", "recalculate chart", "nayi kundli", "change birth details")):
+        conversation.current_state = ConversationState.AWAITING_BIRTH_DATE
+        conversation.state_metadata = {}
+        await session.commit()
+        return "Let's update your birth details.\n\n1️⃣ What is your date of birth? (YYYY-MM-DD, e.g. 1995-10-24)"
+
+    # ── Compatibility Multi-Turn Flow Handling ─────────────────────────────────
+    if meta.get("action") == "compatibility":
+        if lowered in ("cancel", "stop", "abort", "exit"):
+            meta.pop("action", None)
+            meta.pop("step", None)
+            conversation.state_metadata = meta
+            await session.commit()
+            return "Compatibility matching flow cancelled. How else can I assist you?"
+
+        step = meta.get("step")
+        if step == "awaiting_partner_date":
+            p_date = parse_birth_date(clean_text)
+            if not p_date:
+                return "I couldn't understand that date. Please provide your partner's birth date in YYYY-MM-DD format (e.g. 1996-05-15):"
+            meta["partner_date"] = p_date.isoformat()
+            meta["step"] = "awaiting_partner_time"
+            conversation.state_metadata = meta
+            await session.commit()
+            return f"Got it ({p_date.strftime('%d %B %Y')})!\n\n2️⃣ What time was your partner born? (HH:MM or reply *UNKNOWN*):"
+
+        elif step == "awaiting_partner_time":
+            p_time, p_unc = parse_birth_time(clean_text)
+            meta["partner_time"] = p_time.isoformat() if p_time else None
+            meta["partner_time_uncertainty"] = p_unc.value
+            meta["step"] = "awaiting_partner_place"
+            conversation.state_metadata = meta
+            await session.commit()
+            return "3️⃣ Where was your partner born? (City and Country, e.g. Mumbai, India or London, UK):"
+
+        elif step == "awaiting_partner_place":
+            lat, lon, loc_name, tz_name = resolve_birthplace(clean_text)
+            p_date = date.fromisoformat(meta["partner_date"])
+            p_time_str = meta.get("partner_time")
+            p_time = time.fromisoformat(p_time_str) if p_time_str else None
+            p_unc = TimeUncertaintyEnum(meta.get("partner_time_uncertainty", TimeUncertaintyEnum.EXACT.value))
+
+            # Retrieve user's primary birth profile
+            prof_stmt = select(BirthProfile).where(
+                BirthProfile.user_id == user.id,
+                BirthProfile.is_primary == True
+            )
+            profile = (await session.execute(prof_stmt)).scalars().first()
+
+            if not profile:
+                meta.pop("action", None)
+                conversation.state_metadata = meta
+                await session.commit()
+                return "Your primary birth profile was not found. Please complete your own birth profile first."
+
+            user_details = profile.get_decrypted_details()
+
+            # Compute primary chart and partner chart
+            chart1 = compute_astrology_chart(
+                birth_date=user_details["birth_date"],
+                birth_time=user_details["birth_time"],
+                latitude=user_details["latitude"],
+                longitude=user_details["longitude"],
+                timezone_name=user_details["timezone_name"],
+                time_uncertainty=user_details["time_uncertainty"],
+                system=AstrologySystem.VEDIC
+            )
+
+            chart2 = compute_astrology_chart(
+                birth_date=p_date,
+                birth_time=p_time,
+                latitude=lat,
+                longitude=lon,
+                timezone_name=tz_name,
+                time_uncertainty=p_unc,
+                system=AstrologySystem.VEDIC
+            )
+
+            # Clear compatibility flow
+            meta.pop("action", None)
+            meta.pop("step", None)
+            meta.pop("partner_date", None)
+            meta.pop("partner_time", None)
+            meta.pop("partner_time_uncertainty", None)
+            conversation.state_metadata = meta
+            await session.commit()
+
+            return format_compatibility_reading(
+                person1_chart=chart1,
+                person2_chart=chart2,
+                name1=user.whatsapp_name or "You",
+                name2="Partner",
+                lang=lang
+            )
+
     # ── State: ONBOARDING_CONSENT ──────────────────────────────────────────────
     if conversation.current_state == ConversationState.ONBOARDING_CONSENT:
         if active_consent:
-            # Consent already exists; check if profile already exists
             prof_stmt = select(BirthProfile).where(BirthProfile.user_id == user.id)
             existing_profile = (await session.execute(prof_stmt)).scalars().first()
             if existing_profile:
@@ -286,18 +444,16 @@ async def process_conversational_state(
                 await session.commit()
                 return (
                     f"Welcome back{', ' + user.whatsapp_name if user.whatsapp_name else ''}! 🌟 "
-                    "Your birth profile is active. Ask any question about your planetary placements, "
-                    "or send a new date to recalculate your chart!"
+                    "Your birth profile is active. You can ask for your daily horoscope, transits, dasha, or check compatibility!"
                 )
             else:
                 conversation.current_state = ConversationState.AWAITING_BIRTH_DATE
                 await session.commit()
                 return (
-                    "Welcome! Let's generate your authentic Vedic birth chart.\n\n"
+                    "Welcome! Let's generate your authentic astrological birth chart.\n\n"
                     "1️⃣ What is your date of birth? (Please reply in YYYY-MM-DD format, e.g., 1995-10-24)"
                 )
 
-        # Check for user response to consent request
         if lowered in ("yes", "i agree", "agree", "consent", "yup", "sure", "ok", "haan"):
             consent_record = ConsentRecord(
                 user_id=user.id,
@@ -415,7 +571,7 @@ async def process_conversational_state(
         )
         await session.commit()
 
-        # 2. Compute Deterministic D1 Chart using existing calculation engine
+        # 2. Compute Deterministic Chart
         chart = compute_astrology_chart(
             birth_date=b_date,
             birth_time=b_time,
@@ -423,14 +579,15 @@ async def process_conversational_state(
             longitude=lon,
             timezone_name=tz_name,
             time_uncertainty=uncertainty,
-            system=AstrologySystem.VEDIC
+            system=astrology_sys
         )
 
         # 3. Generate Grounded Astrological Reading
         reading_text = await generate_astrology_reading(
             chart=chart,
             time_uncertainty=uncertainty,
-            user_name=user.whatsapp_name
+            user_name=user.whatsapp_name,
+            lang=lang
         )
 
         conversation.current_state = ConversationState.READING_READY
@@ -440,7 +597,6 @@ async def process_conversational_state(
         return reading_text
 
     # ── State: READING_READY / ACTIVE ──────────────────────────────────────────
-    # User has an active chart and is asking a follow-up question
     prof_stmt = select(BirthProfile).where(
         BirthProfile.user_id == user.id,
         BirthProfile.is_primary == True
@@ -449,6 +605,65 @@ async def process_conversational_state(
 
     if profile:
         details = profile.get_decrypted_details()
+
+        # Check for Compatibility Trigger
+        if any(k in lowered for k in ("compatibility", "kundli milan", "milan", "match kundli", "matchmaking", "gun milan")):
+            meta["action"] = "compatibility"
+            meta["step"] = "awaiting_partner_date"
+            conversation.state_metadata = meta
+            await session.commit()
+            return (
+                "💑 **Kundli Milan & Compatibility (Ashtakoota 36 Gunas)**\n\n"
+                "Let's compare charts to assess emotional, physiological, and spiritual harmony.\n\n"
+                "1️⃣ What is your partner's date of birth? (Please reply in YYYY-MM-DD format, e.g. 1996-05-15)"
+            )
+
+        # Check for Daily Horoscope Trigger
+        if any(k in lowered for k in ("daily horoscope", "today's horoscope", "today horoscope", "rashifal", "aaj ka rashifal", "horoscope")):
+            return generate_daily_horoscope_for_profile(
+                birth_date=details["birth_date"],
+                birth_time=details["birth_time"],
+                latitude=details["latitude"],
+                longitude=details["longitude"],
+                timezone_name=details["timezone_name"],
+                user_name=user.whatsapp_name,
+                system=astrology_sys,
+                lang=lang
+            )
+
+        # Check for Dasha Trigger
+        if any(k in lowered for k in ("dasha", "mahadasha", "antardasha", "vimshottari")):
+            return format_dasha_reading(
+                birth_date=details["birth_date"],
+                birth_time=details["birth_time"],
+                latitude=details["latitude"],
+                longitude=details["longitude"],
+                timezone_name=details["timezone_name"],
+                lang=lang
+            )
+
+        # Check for Transits / Sade Sati Trigger
+        if any(k in lowered for k in ("transit", "transits", "sade sati", "gochara", "shani")):
+            return format_transits_reading(
+                birth_date=details["birth_date"],
+                birth_time=details["birth_time"],
+                latitude=details["latitude"],
+                longitude=details["longitude"],
+                timezone_name=details["timezone_name"],
+                time_uncertainty=details["time_uncertainty"],
+                lang=lang
+            )
+
+        # Check for Panchang Trigger
+        if any(k in lowered for k in ("panchang", "tithi", "aaj ka panchang", "muhurta")):
+            return format_panchang_reading(
+                latitude=details["latitude"],
+                longitude=details["longitude"],
+                timezone_name=details["timezone_name"],
+                lang=lang
+            )
+
+        # Default reading / follow-up reading
         chart = compute_astrology_chart(
             birth_date=details["birth_date"],
             birth_time=details["birth_time"],
@@ -456,15 +671,16 @@ async def process_conversational_state(
             longitude=details["longitude"],
             timezone_name=details["timezone_name"],
             time_uncertainty=details["time_uncertainty"],
-            system=AstrologySystem.VEDIC
+            system=astrology_sys
         )
         return await generate_astrology_reading(
             chart=chart,
             time_uncertainty=details["time_uncertainty"],
-            user_name=user.whatsapp_name
+            user_name=user.whatsapp_name,
+            lang=lang
         )
 
-    # Fallback to greeting
+    # Fallback to onboarding
     conversation.current_state = ConversationState.ONBOARDING_CONSENT
     await session.commit()
     return "Welcome! How can I assist you with your astrological reading today?"

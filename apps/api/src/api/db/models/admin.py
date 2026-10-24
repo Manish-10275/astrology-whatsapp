@@ -28,16 +28,20 @@ ROLE_PERMISSIONS = {
         "consent:revoke",
         "deletion:execute",
         "audit:read",
+        "dashboard:read",
+        "dashboard:trigger",
     ],
     AdminRole.SUPPORT: [
         "user:read",
         "consent:read",
         "audit:read",
+        "dashboard:read",
     ],
     AdminRole.ASTROLOGY_QA: [
         "user:read",
         "profile:read_sensitive",
         "audit:read",
+        "dashboard:read",
     ],
     AdminRole.COMPLIANCE: [
         "user:read",
@@ -45,6 +49,7 @@ ROLE_PERMISSIONS = {
         "consent:revoke",
         "deletion:execute",
         "audit:read",
+        "dashboard:read",
     ],
 }
 

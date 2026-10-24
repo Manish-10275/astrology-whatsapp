@@ -141,3 +141,7 @@ class ConversationMessage(Base):
     def get_content(self) -> str:
         """Decrypts and authenticates message content fail-closed."""
         return decrypt_field(self.encrypted_content)
+
+    def get_decrypted_content(self) -> str:
+        """Alias for get_content()."""
+        return self.get_content()
