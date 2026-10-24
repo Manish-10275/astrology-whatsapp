@@ -8,200 +8,29 @@
 </head>
 <body>
   <!-- Global Toast Notification -->
-  <div id="toast" class="toast hidden"></div>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
-  <!-- Authentication View -->
-  <div id="login-view" class="view">
-    <div class="login-card">
-      <div class="login-header">
-        <span class="brand-icon">✨</span>
-        <h2>Astrology Platform Admin</h2>
-        <p>Sign in to manage conversations, metrics, and operations.</p>
+  <!-- Confirmation Dialog Modal -->
+  <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content modal-content-sm">
+      <div class="modal-header">
+        <h4 id="confirm-modal-title">Confirm Batch Dispatch</h4>
+        <button id="confirm-close-btn" class="btn-close" aria-label="Close dialog">&times;</button>
       </div>
-      <form id="login-form">
-        <div class="form-group">
-          <label for="username">Username</label>
-          <input type="text" id="username" placeholder="e.g. admin" required autocomplete="username">
-        </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" placeholder="••••••••••••" required autocomplete="current-password">
-        </div>
-        <div id="login-error" class="alert alert-error hidden"></div>
-        <button type="submit" id="login-btn" class="btn btn-primary btn-block">
-          <span class="btn-text">Sign In</span>
-          <span class="spinner hidden"></span>
-        </button>
-      </form>
+      <div class="modal-body">
+        <p id="confirm-modal-desc">Are you sure you want to trigger the daily horoscope batch dispatch for all active opted-in users?</p>
+        <div id="confirm-modal-date" class="confirm-date-badge hidden"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="confirm-cancel-btn" class="btn btn-secondary">Cancel</button>
+        <button id="confirm-ok-btn" class="btn btn-primary">Confirm Dispatch</button>
+      </div>
     </div>
   </div>
 
-  <!-- Authenticated Dashboard View -->
-  <div id="dashboard-view" class="view hidden">
-    <!-- Navigation Bar -->
-    <header class="navbar">
-      <div class="navbar-left">
-        <span class="brand-icon">✨</span>
-        <span class="navbar-title">Astrology AI Admin</span>
-        <span id="env-badge" class="badge badge-info">Development</span>
-      </div>
-      <div class="navbar-right">
-        <button id="refresh-btn" class="btn btn-secondary btn-sm" title="Refresh Dashboard">
-          🔄 Refresh
-        </button>
-        <span id="admin-user-pill" class="user-pill">
-          <span id="admin-username">Admin</span>
-          <span id="admin-role-badge" class="badge badge-role">SUPER_ADMIN</span>
-        </span>
-        <button id="logout-btn" class="btn btn-outline btn-sm">Sign Out</button>
-      </div>
-    </header>
-
-    <main class="dashboard-content">
-      <!-- Section 1: Operational Metrics -->
-      <section class="section">
-        <div class="section-header">
-          <h3>Operational Metrics</h3>
-          <span class="section-subtitle">Real-time platform activity and astrological preferences</span>
-        </div>
-        <div class="metrics-grid">
-          <div class="metric-card">
-            <span class="metric-label">Total Users</span>
-            <span id="metric-total-users" class="metric-value">-</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">Active Users</span>
-            <span id="metric-active-users" class="metric-value metric-success">-</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">Horoscope Opt-Ins</span>
-            <span id="metric-opt-in-users" class="metric-value metric-accent">-</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">Active Conversations</span>
-            <span id="metric-total-conversations" class="metric-value">-</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">Total Messages</span>
-            <span id="metric-total-messages" class="metric-value">-</span>
-          </div>
-        </div>
-
-        <div class="breakdown-grid">
-          <div class="card">
-            <h4>Astrology System Breakdown</h4>
-            <div id="systems-breakdown" class="breakdown-content">
-              <div class="progress-bar-container">
-                <div id="vedic-progress" class="progress-bar bg-vedic" style="width: 50%"></div>
-                <div id="western-progress" class="progress-bar bg-western" style="width: 50%"></div>
-              </div>
-              <div class="legend-row">
-                <span>🕉️ Vedic: <strong id="vedic-count">0</strong></span>
-                <span>☀️ Western: <strong id="western-count">0</strong></span>
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <h4>User Languages</h4>
-            <div id="languages-breakdown" class="tags-container">
-              <span class="tag">Loading...</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Section 2: Subsystems & Scheduled Horoscope Dispatch -->
-      <section class="section">
-        <div class="section-header">
-          <h3>Subsystems & Scheduler Operations</h3>
-          <span class="section-subtitle">Infrastructure health and automated delivery status</span>
-        </div>
-        <div class="subsystems-grid">
-          <div class="card">
-            <h4>Diagnostics</h4>
-            <ul class="status-list">
-              <li>
-                <span>PostgreSQL Database:</span>
-                <span id="diag-db" class="badge">Checking...</span>
-              </li>
-              <li>
-                <span>Swiss Ephemeris:</span>
-                <span id="diag-eph" class="badge">Checking...</span>
-              </li>
-              <li>
-                <span>OpenAI LLM:</span>
-                <span id="diag-openai" class="badge">Checking...</span>
-              </li>
-              <li>
-                <span>WhatsApp Cloud API:</span>
-                <span id="diag-whatsapp" class="badge">Checking...</span>
-              </li>
-              <li>
-                <span>AES-256-GCM Encryption:</span>
-                <span id="diag-encryption" class="badge">Checking...</span>
-              </li>
-            </ul>
-          </div>
-
-          <div class="card">
-            <h4>Daily Horoscope Scheduler</h4>
-            <div class="scheduler-panel">
-              <p>Trigger automated, idempotent daily horoscope delivery across all opted-in users.</p>
-              <div class="scheduler-controls">
-                <input type="date" id="schedule-date-input" class="input-date">
-                <button id="trigger-scheduler-btn" class="btn btn-primary">
-                  <span>Trigger Batch Dispatch</span>
-                  <span class="spinner hidden"></span>
-                </button>
-              </div>
-              <div id="scheduler-result" class="scheduler-result-box hidden">
-                <h5>Last Dispatch Summary:</h5>
-                <pre id="scheduler-result-pre"></pre>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Section 3: Conversation Traces & Support -->
-      <section class="section">
-        <div class="section-header">
-          <h3>Active Conversations & Traces</h3>
-          <span class="section-subtitle">Diagnostic inspection with privacy-by-design PII redaction</span>
-        </div>
-
-        <div class="card table-card">
-          <div id="table-loading" class="loading-state">
-            <span class="spinner"></span>
-            <p>Loading conversations...</p>
-          </div>
-          <div id="table-empty" class="empty-state hidden">
-            <span>📭</span>
-            <p>No active conversations found.</p>
-          </div>
-          <div class="table-responsive">
-            <table id="conversations-table" class="data-table hidden">
-              <thead>
-                <tr>
-                  <th>Conversation ID</th>
-                  <th>User Prefix</th>
-                  <th>State</th>
-                  <th>Status</th>
-                  <th>Messages</th>
-                  <th>Last Activity</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="conversations-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-    </main>
-  </div>
-
   <!-- Trace Modal -->
-  <div id="trace-modal" class="modal hidden">
+  <div id="trace-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="trace-modal-title">
     <div class="modal-backdrop"></div>
     <div class="modal-content">
       <div class="modal-header">
@@ -209,7 +38,7 @@
           <h4 id="trace-modal-title">Conversation Trace</h4>
           <span id="trace-modal-subtitle" class="text-muted">User: ...</span>
         </div>
-        <button id="close-modal-btn" class="btn-close">&times;</button>
+        <button id="close-modal-btn" class="btn-close" aria-label="Close modal">&times;</button>
       </div>
       <div class="modal-body">
         <div id="trace-loading" class="loading-state">
@@ -221,6 +50,577 @@
         </div>
         <div id="trace-messages-list" class="messages-stream hidden"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- Authentication View -->
+  <div id="login-view" class="view">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="brand-badge">
+          <svg class="brand-icon-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+            <path d="M19 3v4"></path>
+            <path d="M21 5h-4"></path>
+          </svg>
+        </div>
+        <h2>Jyotish Admin</h2>
+        <p>Astrology WhatsApp Assistant — Administrative Console</p>
+      </div>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" placeholder="e.g. admin" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-password-wrap">
+            <input type="password" id="password" placeholder="••••••••••••" required autocomplete="current-password">
+            <button type="button" id="toggle-password-btn" class="btn-toggle-pw" aria-label="Toggle password visibility">
+              <svg id="pw-eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div id="login-error" class="alert alert-error hidden"></div>
+        <button type="submit" id="login-btn" class="btn btn-primary btn-block">
+          <span class="btn-text">Sign In</span>
+          <span class="spinner hidden"></span>
+        </button>
+      </form>
+      <div class="login-footer">
+        <span>Protected Internal System • Role-Based Access Control</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Authenticated Dashboard View -->
+  <div id="dashboard-view" class="view hidden">
+    <!-- Sidebar Navigation Drawer -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-block">
+          <div class="brand-badge-sm">
+            <svg class="brand-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+              <path d="M19 3v4"></path>
+              <path d="M21 5h-4"></path>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">Jyotish Admin</span>
+            <span class="brand-sub">WhatsApp Assistant</span>
+          </div>
+        </div>
+        <button id="sidebar-close-btn" class="btn-sidebar-close" aria-label="Close navigation sidebar">&times;</button>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Main Navigation">
+        <button class="nav-item active" data-section="overview">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Overview</span>
+        </button>
+
+        <button class="nav-item" data-section="users">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>Users</span>
+        </button>
+
+        <button class="nav-item" data-section="conversations">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span>Conversations</span>
+        </button>
+
+        <button class="nav-item" data-section="horoscopes">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <span>Horoscopes</span>
+        </button>
+
+        <button class="nav-item" data-section="compatibility">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+          <span>Compatibility</span>
+        </button>
+
+        <button class="nav-item" data-section="diagnostics">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+          </svg>
+          <span>System Health</span>
+        </button>
+
+        <button class="nav-item" data-section="settings">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span>Settings</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div id="admin-user-pill" class="user-pill">
+          <div class="user-avatar-initial">A</div>
+          <div class="user-meta">
+            <span id="admin-username" class="user-name">Admin</span>
+            <span id="admin-role-badge" class="badge badge-role">SUPER_ADMIN</span>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn btn-outline btn-sm btn-logout" title="Sign out of admin session">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Sidebar Backdrop on Mobile -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop hidden"></div>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+      <!-- Top Navigation Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle-btn" class="sidebar-toggle" aria-label="Toggle navigation drawer">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div class="breadcrumbs">
+            <span class="breadcrumb-root">Jyotish Admin</span>
+            <span class="breadcrumb-separator">/</span>
+            <span id="breadcrumb-current" class="breadcrumb-active">Overview</span>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <span id="env-badge" class="badge badge-info">Development</span>
+          <button id="refresh-btn" class="btn btn-secondary btn-sm" title="Refresh dashboard data">
+            <svg class="refresh-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content View Container -->
+      <main class="main-content">
+        <div class="content-container">
+
+          <!-- 1. SECTION: OVERVIEW -->
+          <section id="section-overview" class="dashboard-section active">
+            <div class="page-header">
+              <h2>Operational Overview</h2>
+              <p>Platform metrics, active engagement, and astrological calculation distributions.</p>
+            </div>
+
+            <!-- Operational Metrics Grid -->
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <div class="metric-top">
+                  <span class="metric-label">Total Users</span>
+                  <span class="metric-icon-wrap">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                  </span>
+                </div>
+                <span id="metric-total-users" class="metric-value">-</span>
+                <span class="metric-subtext">Registered phone identifiers</span>
+              </div>
+
+              <div class="metric-card">
+                <div class="metric-top">
+                  <span class="metric-label">Active Users</span>
+                  <span class="metric-icon-wrap icon-success">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </span>
+                </div>
+                <span id="metric-active-users" class="metric-value metric-success">-</span>
+                <span class="metric-subtext">Active status users</span>
+              </div>
+
+              <div class="metric-card">
+                <div class="metric-top">
+                  <span class="metric-label">Horoscope Opt-Ins</span>
+                  <span class="metric-icon-wrap icon-accent">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle></svg>
+                  </span>
+                </div>
+                <span id="metric-opt-in-users" class="metric-value metric-accent">-</span>
+                <span class="metric-subtext">Daily batch subscribers</span>
+              </div>
+
+              <div class="metric-card">
+                <div class="metric-top">
+                  <span class="metric-label">Active Conversations</span>
+                  <span class="metric-icon-wrap">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                  </span>
+                </div>
+                <span id="metric-total-conversations" class="metric-value">-</span>
+                <span class="metric-subtext">Session conversation records</span>
+              </div>
+
+              <div class="metric-card">
+                <div class="metric-top">
+                  <span class="metric-label">Total Messages</span>
+                  <span class="metric-icon-wrap">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                  </span>
+                </div>
+                <span id="metric-total-messages" class="metric-value">-</span>
+                <span class="metric-subtext">Inbound & outbound messages</span>
+              </div>
+            </div>
+
+            <!-- Breakdown Grids -->
+            <div class="breakdown-grid">
+              <div class="card">
+                <div class="card-title-row">
+                  <h3>Astrology System Preferences</h3>
+                  <span class="text-caption">User calculation defaults</span>
+                </div>
+                <div id="systems-breakdown" class="breakdown-content">
+                  <div class="progress-bar-container">
+                    <div id="vedic-progress" class="progress-bar bg-vedic" style="width: 50%" title="Vedic System Share"></div>
+                    <div id="western-progress" class="progress-bar bg-western" style="width: 50%" title="Western System Share"></div>
+                  </div>
+                  <div class="legend-row">
+                    <span class="legend-item"><span class="legend-dot dot-vedic"></span> Vedic (Lahiri): <strong id="vedic-count">0</strong></span>
+                    <span class="legend-item"><span class="legend-dot dot-western"></span> Western (Tropical): <strong id="western-count">0</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title-row">
+                  <h3>Language Distribution</h3>
+                  <span class="text-caption">User language preferences</span>
+                </div>
+                <div id="languages-breakdown" class="tags-container">
+                  <span class="tag">Loading...</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Subsystems Strip -->
+            <div class="card">
+              <div class="card-title-row">
+                <h3>Subsystem Health Summary</h3>
+                <span class="text-caption">Current connectivity checks</span>
+              </div>
+              <div class="quick-status-strip">
+                <div class="quick-status-item">
+                  <span class="status-indicator" id="indicator-db"></span>
+                  <span class="status-name">PostgreSQL Database</span>
+                </div>
+                <div class="quick-status-item">
+                  <span class="status-indicator" id="indicator-eph"></span>
+                  <span class="status-name">Astrology Engine</span>
+                </div>
+                <div class="quick-status-item">
+                  <span class="status-indicator" id="indicator-openai"></span>
+                  <span class="status-name">OpenAI LLM</span>
+                </div>
+                <div class="quick-status-item">
+                  <span class="status-indicator" id="indicator-whatsapp"></span>
+                  <span class="status-name">WhatsApp API</span>
+                </div>
+                <div class="quick-status-item">
+                  <span class="status-indicator" id="indicator-encryption"></span>
+                  <span class="status-name">AES-GCM Encryption</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. SECTION: USERS -->
+          <section id="section-users" class="dashboard-section hidden">
+            <div class="page-header">
+              <h2>User Directory & Privacy Foundation</h2>
+              <p>User demographics, consent verification, and DPDP / GDPR privacy compliance controls.</p>
+            </div>
+
+            <div class="breakdown-grid">
+              <div class="card">
+                <div class="card-title-row">
+                  <h3>Privacy Architecture</h3>
+                  <span class="badge badge-success">DPDP / GDPR Compliant</span>
+                </div>
+                <ul class="clean-bullet-list">
+                  <li><strong>Zero Raw Phone Numbers:</strong> User phone numbers are hashed with SHA-256 for index lookups and AES-256-GCM encrypted at rest.</li>
+                  <li><strong>Explicit Consent Tracking:</strong> DPDP / GDPR consent timestamps and policy version signatures are enforced before storing conversation history.</li>
+                  <li><strong>Right to be Forgotten:</strong> Hard-deletion cascade removes profile records, preferences, conversation traces, and raw messages immediately.</li>
+                </ul>
+              </div>
+
+              <div class="card">
+                <div class="card-title-row">
+                  <h3>Direct Record Operations</h3>
+                  <span class="badge badge-info">Policy Governed</span>
+                </div>
+                <p class="section-desc">To prevent inadvertent PII leakage, direct user profile modifications must be issued through cryptographic privacy deletion routes or authenticated user consent commands.</p>
+                <div class="status-notice">
+                  <span>ℹ️ User management endpoints are restricted to authorized privacy and compliance workflows.</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 3. SECTION: CONVERSATIONS -->
+          <section id="section-conversations" class="dashboard-section hidden">
+            <div class="page-header">
+              <h2>Active Conversations & Message Traces</h2>
+              <p>Operational inspection with privacy-by-design PII redaction and encrypted message preview.</p>
+            </div>
+
+            <div class="card table-card">
+              <div class="table-toolbar">
+                <div class="search-box">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input type="text" id="conversation-search" placeholder="Filter conversations by ID or user prefix..." class="input-search">
+                </div>
+              </div>
+
+              <div id="table-loading" class="loading-state">
+                <span class="spinner"></span>
+                <p>Loading conversations...</p>
+              </div>
+
+              <div id="table-empty" class="empty-state hidden">
+                <div class="empty-icon-wrap">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+                </div>
+                <p>No active conversations found.</p>
+              </div>
+
+              <div class="table-responsive">
+                <table id="conversations-table" class="data-table hidden">
+                  <thead>
+                    <tr>
+                      <th scope="col">Conversation ID</th>
+                      <th scope="col">User Prefix</th>
+                      <th scope="col">Channel</th>
+                      <th scope="col">State</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Messages</th>
+                      <th scope="col">Last Activity</th>
+                      <th scope="col">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="conversations-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 4. SECTION: HOROSCOPES -->
+          <section id="section-horoscopes" class="dashboard-section hidden">
+            <div class="page-header">
+              <h2>Daily Horoscope & Dispatch Operations</h2>
+              <p>Automated transit calculations, timezone matching, and reliable batch delivery controls.</p>
+            </div>
+
+            <div class="subsystems-grid">
+              <div class="card">
+                <div class="card-title-row">
+                  <h3>Horoscope Dispatch Controls</h3>
+                  <span class="badge badge-role">Idempotent</span>
+                </div>
+                <p class="section-desc">Trigger automated daily horoscope batch delivery across all active opted-in users. Dispatches are strictly idempotent per user local date.</p>
+                <div class="scheduler-controls">
+                  <div class="control-group">
+                    <label for="schedule-date-input" class="input-label">Target Date (Optional)</label>
+                    <input type="date" id="schedule-date-input" class="input-date">
+                  </div>
+                  <button id="trigger-scheduler-btn" class="btn btn-primary">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    <span class="btn-text">Trigger Batch Dispatch</span>
+                    <span class="spinner hidden"></span>
+                  </button>
+                </div>
+
+                <div id="scheduler-result" class="scheduler-result-box hidden">
+                  <h5>Last Dispatch Summary:</h5>
+                  <pre id="scheduler-result-pre"></pre>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title-row">
+                  <h3>Scheduler Architecture & Guardrails</h3>
+                  <span class="badge badge-info">Reliability</span>
+                </div>
+                <ul class="clean-bullet-list">
+                  <li><strong>Timezone Matching:</strong> Evaluates each user's local hour (07:00 default) using their stored IANA timezone.</li>
+                  <li><strong>Strict Opt-Out Exclusion:</strong> Only users with active opt-in consent and unblocked status are queried.</li>
+                  <li><strong>Worker Race Prevention:</strong> Guarded by in-process dispatch locks. Multi-replica environments should invoke via external cron.</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- 5. SECTION: COMPATIBILITY -->
+          <section id="section-compatibility" class="dashboard-section hidden">
+            <div class="page-header">
+              <h2>Compatibility Engine (Ashta Koota)</h2>
+              <p>Vedic 36-point compatibility scoring, Dosha analysis, and synastry calculation foundation.</p>
+            </div>
+
+            <div class="breakdown-grid">
+              <div class="card">
+                <div class="card-title-row">
+                  <h3>Ashta Koota Scoring System</h3>
+                  <span class="badge badge-role">36 Points Total</span>
+                </div>
+                <ul class="clean-bullet-list">
+                  <li><strong>Varna (1 pt):</strong> Spiritual compatibility & ego temperament.</li>
+                  <li><strong>Vashya (2 pts):</strong> Mutual attraction and natural affinity.</li>
+                  <li><strong>Tara (3 pts):</strong> Birth star health, longevity, and well-being.</li>
+                  <li><strong>Yoni (4 pts):</strong> Biological and physical compatibility.</li>
+                  <li><strong>Graha Maitri (5 pts):</strong> Planetary friendship and psychological harmony.</li>
+                  <li><strong>Gana (6 pts):</strong> Temperament and psychological constitution.</li>
+                  <li><strong>Bhakoot (7 pts):</strong> Emotional intimacy and financial welfare.</li>
+                  <li><strong>Nadi (8 pts):</strong> Genetic compatibility, nervous health, and progeny.</li>
+                </ul>
+              </div>
+
+              <div class="card">
+                <div class="card-title-row">
+                  <h3>Operational Status</h3>
+                  <span class="badge badge-success">Engine Active</span>
+                </div>
+                <p class="section-desc">Compatibility evaluations are calculated in real time during conversational consultations. The calculation engine applies authentic Classical Nadi and Bhakoot dosha cancellation exceptions based on Pada distinctions and ruling planetary friendships.</p>
+                <div class="status-notice">
+                  <span>ℹ️ Automated telemetry and compatibility pair analytics will display aggregated metrics here as conversational consultation volume scales.</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 6. SECTION: DIAGNOSTICS & SYSTEM HEALTH -->
+          <section id="section-diagnostics" class="dashboard-section hidden">
+            <div class="page-header">
+              <h2>System Health & Subsystem Diagnostics</h2>
+              <p>Real-time connectivity and operational readiness verification across platform infrastructure.</p>
+            </div>
+
+            <div class="card">
+              <div class="card-title-row">
+                <h3>Subsystem Status Overview</h3>
+                <span class="text-caption">Live infrastructure checks</span>
+              </div>
+              <ul class="status-list">
+                <li>
+                  <div class="status-meta">
+                    <strong>PostgreSQL Database</strong>
+                    <span class="status-desc">Primary relational store, Alembic migrations, conversation history</span>
+                  </div>
+                  <span id="diag-db" class="badge">Checking...</span>
+                </li>
+                <li>
+                  <div class="status-meta">
+                    <strong>Astrology Engine & Ephemeris</strong>
+                    <span class="status-desc">Sidereal planetary math, Lahiri Ayanamsa, Vimshottari Dasha, Panchang</span>
+                  </div>
+                  <span id="diag-eph" class="badge">Checking...</span>
+                </li>
+                <li>
+                  <div class="status-meta">
+                    <strong>OpenAI LLM Integration</strong>
+                    <span class="status-desc">Natural language synthesis and contextual interpretation adapter</span>
+                  </div>
+                  <span id="diag-openai" class="badge">Checking...</span>
+                </li>
+                <li>
+                  <div class="status-meta">
+                    <strong>WhatsApp Cloud API</strong>
+                    <span class="status-desc">Meta Graph API messaging client, HMAC-SHA256 signature verification</span>
+                  </div>
+                  <span id="diag-whatsapp" class="badge">Checking...</span>
+                </li>
+                <li>
+                  <div class="status-meta">
+                    <strong>AES-256-GCM Encryption</strong>
+                    <span class="status-desc">Envelope encryption for phone numbers, birth data, and conversation history</span>
+                  </div>
+                  <span id="diag-encryption" class="badge">Checking...</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          <!-- 7. SECTION: SETTINGS -->
+          <section id="section-settings" class="dashboard-section hidden">
+            <div class="page-header">
+              <h2>Platform Settings & Environment</h2>
+              <p>Read-only configuration parameters, security headers, and operational runtime policies.</p>
+            </div>
+
+            <div class="breakdown-grid">
+              <div class="card">
+                <div class="card-title-row">
+                  <h3>Security & Access Control</h3>
+                  <span class="badge badge-info">Read-Only</span>
+                </div>
+                <ul class="clean-bullet-list">
+                  <li><strong>Password Hashing:</strong> Argon2id with memory-cost security parameters.</li>
+                  <li><strong>Access Tokens:</strong> JSON Web Tokens (JWT) signed with HS256 and stored in sessionStorage.</li>
+                  <li><strong>Security Headers:</strong> X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin.</li>
+                  <li><strong>PII Redaction:</strong> Admin traces mask phone numbers and truncate message previews to 150 characters.</li>
+                </ul>
+              </div>
+
+              <div class="card">
+                <div class="card-title-row">
+                  <h3>Runtime Environment</h3>
+                  <span class="badge badge-role">FastAPI 0.115+</span>
+                </div>
+                <ul class="clean-bullet-list">
+                  <li><strong>Backend Framework:</strong> Python 3.12 / FastAPI async ASGI architecture.</li>
+                  <li><strong>Database Engine:</strong> PostgreSQL 16 with SQLAlchemy 2.0 asyncpg pool.</li>
+                  <li><strong>Default Timezone:</strong> UTC internal timestamps with user IANA timezone resolution.</li>
+                  <li><strong>Calculation Engine:</strong> Deterministic sidereal ephemeris engine with zero external network reliance.</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </main>
     </div>
   </div>
 
