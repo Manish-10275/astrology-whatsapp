@@ -126,7 +126,7 @@ class ChartRequest(BaseModel):
     timezone_offset_seconds: Optional[int] = Field(None, description="Optional explicit UTC offset in seconds override")
     fold: int = Field(default=0, ge=0, le=1, description="Disambiguates duplicate local times during daylight saving fall-back (0 for first occurrence, 1 for second)")
     system: AstrologySystem = Field(default=AstrologySystem.VEDIC)
-    ayanamsa: AyanamsaType = Field(default=AyanamsaType.LAHIRI)
+    ayanamsa: Optional[AyanamsaType] = Field(default=AyanamsaType.LAHIRI)
     house_system: HouseSystemType = Field(default=HouseSystemType.WHOLE_SIGN)
 
     @field_validator("birth_date")

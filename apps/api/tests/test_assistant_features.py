@@ -16,6 +16,7 @@ from api.db.models.birth_profile import BirthProfile, TimeUncertaintyEnum
 from api.db.models.conversation import Conversation, ConversationMessage, ConversationState, ConversationStatus
 from api.security.encryption import compute_phone_hash, encrypt_field
 from api.services.whatsapp import _PROCESSED_MESSAGE_IDS
+from api.services.astrology_service import detect_language, generate_astrology_reading, compute_astrology_chart
 
 
 def make_payload(msg_id: str, text: str, phone: str = "919876543210") -> dict:
@@ -299,3 +300,97 @@ async def test_daily_horoscope_subscription_chat_commands(client: AsyncClient, d
 
     await db_session.refresh(pref)
     assert pref.daily_horoscope_opt_in is False
+
+
+def test_detect_language_multilingual_inputs():
+    """Verify accurate language detection across Hindi (Devanagari), Hinglish, and English."""
+    assert detect_language("Hello, what is my birth chart?") == "en"
+    assert detect_language("What are my planetary transits today?") == "en"
+    assert detect_language("नमस्ते, मुझे अपनी कुंडली देखनी है") == "hi"
+    assert detect_language("आज का राशिफल क्या है?") == "hi"
+    assert detect_language("mera dasha aur kundli batao") == "hinglish"
+    assert detect_language("kya shani sade sati chal rahi hai?") == "hinglish"
+
+
+@pytest.mark.asyncio
+async def test_generate_astrology_reading_multilingual_fallback():
+    """Verify deterministic fallback produces accurate Hindi, Hinglish, and English readings grounded in calculation facts."""
+    chart = compute_astrology_chart(
+        birth_date=date(1995, 10, 24),
+        birth_time=time(14, 30),
+        latitude=28.6139,
+        longitude=77.2090,
+        timezone_name="Asia/Kolkata",
+        time_uncertainty=TimeUncertaintyEnum.EXACT,
+    )
+
+    # 1. Hindi reading
+    hi_reading = await generate_astrology_reading(
+        chart=chart,
+        time_uncertainty=TimeUncertaintyEnum.EXACT,
+        user_name="राहुल",
+        lang="hi"
+    )
+    assert "नमस्ते राहुल!" in hi_reading
+    assert "वैदिक जन्म कुंडली" in hi_reading
+    assert "चंद्र राशि:" in hi_reading
+    assert "सूर्य राशि:" in hi_reading
+    assert chart.ascendant.sign_sanskrit in hi_reading
+
+    # 2. Hinglish reading
+    hinglish_reading = await generate_astrology_reading(
+        chart=chart,
+        time_uncertainty=TimeUncertaintyEnum.EXACT,
+        user_name="Rahul",
+        lang="hinglish"
+    )
+    assert "Namaste Rahul!" in hinglish_reading
+    assert "Yeh rahi aapki authentic Vedic Birth Chart" in hinglish_reading
+    assert "Moon Sign" in hinglish_reading
+    assert "Sun Sign" in hinglish_reading
+    assert chart.ascendant.sign_sanskrit in hinglish_reading
+
+    # 3. Unknown birth time in Hindi reading withholds lagna
+    hi_unknown = await generate_astrology_reading(
+        chart=chart,
+        time_uncertainty=TimeUncertaintyEnum.UNKNOWN,
+        user_name="राहुल",
+        lang="hi"
+    )
+    assert "लग्न (Ascendant): अज्ञात" in hi_unknown
+    assert "सटीक जन्म समय उपलब्ध न होने के कारण भाव और लग्न रोके गए हैं" in hi_unknown
+
+
+@pytest.mark.asyncio
+async def test_inbound_hinglish_auto_language_switch(client: AsyncClient, db_session: AsyncSession):
+    """Verify that an inbound message in Hinglish auto-detects language and returns a localized response."""
+    user = await setup_consented_user_with_profile(db_session, "919888899999")
+    settings = get_settings()
+
+    # User sends Hinglish dasha query
+    p = make_payload("msg_hinglish_1", "mera mahadasha aur dasha batao please", "919888899999")
+    raw, sig = sign(p, settings.WHATSAPP_APP_SECRET)
+    resp = await client.post(
+        "/api/v1/webhook/whatsapp",
+        content=raw,
+        headers={"X-Hub-Signature-256": sig, "Content-Type": "application/json"}
+    )
+    assert resp.status_code == 200
+
+    # Verify user preference auto-updated to Hinglish
+    await db_session.refresh(user)
+    pref_stmt = select(UserPreferences).where(UserPreferences.user_id == user.id)
+    pref = (await db_session.execute(pref_stmt)).scalar_one()
+    assert pref.preferred_language == "hinglish"
+
+    # Verify reply was delivered in Hinglish/Hindi format
+    msg_stmt = (
+        select(ConversationMessage)
+        .where(ConversationMessage.user_id == user.id, ConversationMessage.direction == "outbound")
+        .order_by(ConversationMessage.created_at.desc())
+    )
+    last_msg = (await db_session.execute(msg_stmt)).scalars().first()
+    assert last_msg is not None
+    content = last_msg.get_decrypted_content()
+    assert "Vimshottari Dasha" in content or "विंशोत्तरी दशा" in content
+

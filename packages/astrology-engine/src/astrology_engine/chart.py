@@ -26,7 +26,7 @@ def generate_calculation_hash(request: ChartRequest) -> str:
     """Generates a reproducible SHA-256 hash identifying the calculation parameters."""
     raw_str = (
         f"{request.system.value}:"
-        f"{request.ayanamsa.value}:"
+        f"{request.ayanamsa.value if request.ayanamsa else 'NONE'}:"
         f"{request.house_system.value}:"
         f"{request.birth_date.isoformat()}:"
         f"{request.birth_time.isoformat() if request.birth_time else 'UNKNOWN'}:"
