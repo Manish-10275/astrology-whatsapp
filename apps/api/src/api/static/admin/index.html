@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — Astrology WhatsApp Assistant</title>
+  <link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+  <!-- Global Toast Notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Authentication View -->
+  <div id="login-view" class="view">
+    <div class="login-card">
+      <div class="login-header">
+        <span class="brand-icon">✨</span>
+        <h2>Astrology Platform Admin</h2>
+        <p>Sign in to manage conversations, metrics, and operations.</p>
+      </div>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" placeholder="e.g. admin" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••••••" required autocomplete="current-password">
+        </div>
+        <div id="login-error" class="alert alert-error hidden"></div>
+        <button type="submit" id="login-btn" class="btn btn-primary btn-block">
+          <span class="btn-text">Sign In</span>
+          <span class="spinner hidden"></span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Authenticated Dashboard View -->
+  <div id="dashboard-view" class="view hidden">
+    <!-- Navigation Bar -->
+    <header class="navbar">
+      <div class="navbar-left">
+        <span class="brand-icon">✨</span>
+        <span class="navbar-title">Astrology AI Admin</span>
+        <span id="env-badge" class="badge badge-info">Development</span>
+      </div>
+      <div class="navbar-right">
+        <button id="refresh-btn" class="btn btn-secondary btn-sm" title="Refresh Dashboard">
+          🔄 Refresh
+        </button>
+        <span id="admin-user-pill" class="user-pill">
+          <span id="admin-username">Admin</span>
+          <span id="admin-role-badge" class="badge badge-role">SUPER_ADMIN</span>
+        </span>
+        <button id="logout-btn" class="btn btn-outline btn-sm">Sign Out</button>
+      </div>
+    </header>
+
+    <main class="dashboard-content">
+      <!-- Section 1: Operational Metrics -->
+      <section class="section">
+        <div class="section-header">
+          <h3>Operational Metrics</h3>
+          <span class="section-subtitle">Real-time platform activity and astrological preferences</span>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-label">Total Users</span>
+            <span id="metric-total-users" class="metric-value">-</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Active Users</span>
+            <span id="metric-active-users" class="metric-value metric-success">-</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Horoscope Opt-Ins</span>
+            <span id="metric-opt-in-users" class="metric-value metric-accent">-</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Active Conversations</span>
+            <span id="metric-total-conversations" class="metric-value">-</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Total Messages</span>
+            <span id="metric-total-messages" class="metric-value">-</span>
+          </div>
+        </div>
+
+        <div class="breakdown-grid">
+          <div class="card">
+            <h4>Astrology System Breakdown</h4>
+            <div id="systems-breakdown" class="breakdown-content">
+              <div class="progress-bar-container">
+                <div id="vedic-progress" class="progress-bar bg-vedic" style="width: 50%"></div>
+                <div id="western-progress" class="progress-bar bg-western" style="width: 50%"></div>
+              </div>
+              <div class="legend-row">
+                <span>🕉️ Vedic: <strong id="vedic-count">0</strong></span>
+                <span>☀️ Western: <strong id="western-count">0</strong></span>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h4>User Languages</h4>
+            <div id="languages-breakdown" class="tags-container">
+              <span class="tag">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Subsystems & Scheduled Horoscope Dispatch -->
+      <section class="section">
+        <div class="section-header">
+          <h3>Subsystems & Scheduler Operations</h3>
+          <span class="section-subtitle">Infrastructure health and automated delivery status</span>
+        </div>
+        <div class="subsystems-grid">
+          <div class="card">
+            <h4>Diagnostics</h4>
+            <ul class="status-list">
+              <li>
+                <span>PostgreSQL Database:</span>
+                <span id="diag-db" class="badge">Checking...</span>
+              </li>
+              <li>
+                <span>Swiss Ephemeris:</span>
+                <span id="diag-eph" class="badge">Checking...</span>
+              </li>
+              <li>
+                <span>OpenAI LLM:</span>
+                <span id="diag-openai" class="badge">Checking...</span>
+              </li>
+              <li>
+                <span>WhatsApp Cloud API:</span>
+                <span id="diag-whatsapp" class="badge">Checking...</span>
+              </li>
+              <li>
+                <span>AES-256-GCM Encryption:</span>
+                <span id="diag-encryption" class="badge">Checking...</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h4>Daily Horoscope Scheduler</h4>
+            <div class="scheduler-panel">
+              <p>Trigger automated, idempotent daily horoscope delivery across all opted-in users.</p>
+              <div class="scheduler-controls">
+                <input type="date" id="schedule-date-input" class="input-date">
+                <button id="trigger-scheduler-btn" class="btn btn-primary">
+                  <span>Trigger Batch Dispatch</span>
+                  <span class="spinner hidden"></span>
+                </button>
+              </div>
+              <div id="scheduler-result" class="scheduler-result-box hidden">
+                <h5>Last Dispatch Summary:</h5>
+                <pre id="scheduler-result-pre"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3: Conversation Traces & Support -->
+      <section class="section">
+        <div class="section-header">
+          <h3>Active Conversations & Traces</h3>
+          <span class="section-subtitle">Diagnostic inspection with privacy-by-design PII redaction</span>
+        </div>
+
+        <div class="card table-card">
+          <div id="table-loading" class="loading-state">
+            <span class="spinner"></span>
+            <p>Loading conversations...</p>
+          </div>
+          <div id="table-empty" class="empty-state hidden">
+            <span>📭</span>
+            <p>No active conversations found.</p>
+          </div>
+          <div class="table-responsive">
+            <table id="conversations-table" class="data-table hidden">
+              <thead>
+                <tr>
+                  <th>Conversation ID</th>
+                  <th>User Prefix</th>
+                  <th>State</th>
+                  <th>Status</th>
+                  <th>Messages</th>
+                  <th>Last Activity</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="conversations-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Trace Modal -->
+  <div id="trace-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h4 id="trace-modal-title">Conversation Trace</h4>
+          <span id="trace-modal-subtitle" class="text-muted">User: ...</span>
+        </div>
+        <button id="close-modal-btn" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="trace-loading" class="loading-state">
+          <span class="spinner"></span>
+          <p>Fetching message trace...</p>
+        </div>
+        <div id="trace-empty" class="empty-state hidden">
+          <p>No messages recorded in this conversation.</p>
+        </div>
+        <div id="trace-messages-list" class="messages-stream hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/admin/assets/admin.js"></script>
+</body>
+</html>

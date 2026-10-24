@@ -22,7 +22,7 @@ from api.db.models.conversation import (
 )
 from api.security.rbac import require_permission
 from api.config import get_settings
-from api.services.scheduler import dispatch_daily_horoscopes
+from api.services.scheduler import dispatch_daily_horoscopes, scheduler_daemon
 from astrology_engine.adapter import default_adapter
 
 logger = logging.getLogger("api.routers.admin_dashboard")
@@ -82,6 +82,7 @@ class DiagnosticsResponse(BaseModel):
     openai_configured: bool
     whatsapp_configured: bool
     encryption_ready: bool
+    scheduler_status: Optional[Dict[str, Any]] = None
     timestamp: datetime
 
 
@@ -269,6 +270,9 @@ async def get_operational_diagnostics(
     # 5. Encryption keys
     encryption_ok = bool(settings.ENCRYPTION_PRIMARY_KEY and settings.ENCRYPTION_PRIMARY_KEY.get_secret_value())
 
+    # 6. Scheduler status
+    sched_status = scheduler_daemon.get_status()
+
     return DiagnosticsResponse(
         status="operational" if db_status == "connected" else "degraded",
         database=db_status,
@@ -277,6 +281,7 @@ async def get_operational_diagnostics(
         openai_configured=openai_ok,
         whatsapp_configured=whatsapp_ok,
         encryption_ready=encryption_ok,
+        scheduler_status=sched_status,
         timestamp=datetime.now(timezone.utc)
     )
 
