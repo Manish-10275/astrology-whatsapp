@@ -3,8 +3,8 @@
  * Minimalist Sky Blue & Warm Cream Flat 2D Interface
  * 
  * Interacts with authenticated backend APIs:
- * - POST /api/v1/auth/login
- * - GET  /api/v1/auth/me
+ * - POST /api/v1/admin/auth/login
+ * - GET  /api/v1/admin/auth/me
  * - GET  /api/v1/admin/dashboard/stats
  * - GET  /api/v1/admin/dashboard/diagnostics
  * - GET  /api/v1/admin/dashboard/conversations
@@ -193,7 +193,7 @@ loginForm.addEventListener('submit', async (e) => {
   const password = document.getElementById('password').value;
 
   try {
-    const res = await fetch(`${API_BASE}/auth/login`, {
+    const res = await fetch(`${API_BASE}/admin/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -225,7 +225,7 @@ logoutBtn.addEventListener('click', () => {
 async function initDashboard() {
   try {
     // 1. Fetch current admin profile
-    currentUser = await apiRequest('/auth/me');
+    currentUser = await apiRequest('/admin/auth/me');
     adminUsername.textContent = currentUser.username;
     adminRoleBadge.textContent = currentUser.role.toUpperCase();
 
