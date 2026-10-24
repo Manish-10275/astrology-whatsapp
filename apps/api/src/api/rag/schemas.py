@@ -12,7 +12,7 @@ AstrologyTradition = Literal["vedic", "western", "both"]
 class KnowledgeDocumentInput(BaseModel):
     """A reviewed-source candidate submitted to the ingestion service."""
     model_config = ConfigDict(str_strip_whitespace=True)
-    source_id: str = Field(min_length=1, max_length=255)
+    source_id: str = Field(min_length=1, max_length=255, pattern=r"^[A-Za-z0-9_.:-]+$")
     title: str = Field(min_length=1, max_length=500)
     text: str = Field(min_length=1, max_length=2_000_000)
     language: str = Field(default="en", min_length=2, max_length=10)
