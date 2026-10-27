@@ -273,7 +273,8 @@ async def generate_astrology_reading(
     chart: D1Chart,
     time_uncertainty: TimeUncertaintyEnum,
     user_name: Optional[str] = None,
-    lang: str = "en"
+    lang: str = "en",
+    general_instructions: Optional[str] = None,
 ) -> str:
     """Generates an authentic natural language interpretation of verified chart calculations."""
     if chart.system == AstrologySystem.WESTERN:
@@ -288,9 +289,10 @@ async def generate_astrology_reading(
             client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY.get_secret_value())
 
             lang_instruction = "Respond in Hindi." if lang == "hi" else ("Respond in conversational Hinglish." if lang == "hinglish" else "Respond in English.")
+            instructions_base = general_instructions.strip() if general_instructions and general_instructions.strip() else "You are an authentic, deeply insightful, and empathetic Vedic Astrologer on WhatsApp."
 
             system_prompt = (
-                f"You are an authentic, deeply insightful, and empathetic Vedic Astrologer on WhatsApp. {lang_instruction} "
+                f"{instructions_base} {lang_instruction} "
                 "You are interpreting a newly calculated birth chart for a client. "
                 "CRITICAL RULES:\n"
                 "1. Strictly base your analysis on the verified calculation facts provided below.\n"
@@ -637,7 +639,8 @@ def generate_daily_horoscope_for_profile(
     target_date: Optional[date] = None,
     user_name: Optional[str] = None,
     system: AstrologySystem = AstrologySystem.VEDIC,
-    lang: str = "en"
+    lang: str = "en",
+    horoscope_intro: Optional[str] = None,
 ) -> str:
     """Generates an authentic daily horoscope grounded in current transits relative to natal Moon."""
     chart = compute_astrology_chart(
@@ -663,8 +666,10 @@ def generate_daily_horoscope_for_profile(
     auspicious_count = sum(1 for t in transits.planets if t.is_auspicious)
     overall_tone = "highly auspicious and constructive" if auspicious_count >= 4 else "a day for mindful steady focus"
 
+    intro_prefix = f"ℹ️ {horoscope_intro.strip()}\n\n" if horoscope_intro and horoscope_intro.strip() else ""
+
     if lang in ("hi", "hinglish"):
-        return (
+        return intro_prefix + (
             f"✨ **दैनिक राशिफल (Daily Horoscope) — {t_date.strftime('%d %B %Y')}** ✨\n\n"
             f"नमस्ते {user_display}! 🕉️\n"
             f"🌙 **आपकी चंद्र राशि:** {moon_sanskrit} ({moon_sign})\n\n"
@@ -675,7 +680,7 @@ def generate_daily_horoscope_for_profile(
             f"🌟 **शुभ सलाह:** आज भगवान शिव या अपने ईष्टदेव का स्मरण करें और जल अर्पित करें।"
         )
 
-    return (
+    return intro_prefix + (
         f"✨ **Daily Horoscope for {t_date.strftime('%A, %d %B %Y')}** ✨\n\n"
         f"Greetings {user_display}! 🌟\n"
         f"🌙 **Moon Sign:** {moon_sign} ({moon_sanskrit})\n\n"

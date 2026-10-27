@@ -21,6 +21,9 @@ from api.routers.privacy import router as privacy_router
 from api.routers.webhook_whatsapp import router as whatsapp_router
 from api.routers.schedules import router as schedules_router
 from api.routers.admin_dashboard import router as admin_dashboard_router
+from api.routers.admin_control import router as admin_control_router
+from api.routers.admin_profile import router as admin_profile_router
+from api.routers.admin_messages import router as admin_messages_router
 
 logger = logging.getLogger("api.main")
 
@@ -104,6 +107,9 @@ def create_app() -> FastAPI:
     app.include_router(whatsapp_router)
     app.include_router(schedules_router)
     app.include_router(admin_dashboard_router)
+    app.include_router(admin_control_router)
+    app.include_router(admin_profile_router)
+    app.include_router(admin_messages_router)
 
     # Mount lightweight Internal Admin Dashboard
     static_admin_dir = os.path.join(os.path.dirname(__file__), "static", "admin")

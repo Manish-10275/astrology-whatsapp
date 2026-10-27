@@ -15,6 +15,14 @@ from api.db.models.conversation import (
     MessageDirection,
     MessageSender,
 )
+from api.db.models.bot_settings import (
+    BotSettings,
+    DEFAULT_WELCOME_MESSAGE,
+    DEFAULT_FALLBACK_MESSAGE,
+    DEFAULT_GENERAL_INSTRUCTIONS,
+    DEFAULT_HOROSCOPE_INTRO,
+    DEFAULT_MAINTENANCE_MESSAGE,
+)
 
 __all__ = [
     "Base",
@@ -37,4 +45,10 @@ __all__ = [
     "ConversationMessage",
     "MessageDirection",
     "MessageSender",
+    "BotSettings",
+    "DEFAULT_WELCOME_MESSAGE",
+    "DEFAULT_FALLBACK_MESSAGE",
+    "DEFAULT_GENERAL_INSTRUCTIONS",
+    "DEFAULT_HOROSCOPE_INTRO",
+    "DEFAULT_MAINTENANCE_MESSAGE",
 ]

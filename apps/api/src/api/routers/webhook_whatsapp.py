@@ -21,6 +21,8 @@ from api.db.models.conversation import (
     MessageDirection,
     MessageSender,
 )
+from api.db.models.bot_settings import BotSettings
+from api.services.bot_settings_service import get_or_create_bot_settings
 from api.security.encryption import compute_phone_hash, encrypt_field
 from astrology_engine.models import AstrologySystem
 from api.services.whatsapp import (
@@ -103,7 +105,7 @@ async def receive_whatsapp_webhook(
         logger.error("Failed to decode JSON from WhatsApp webhook: %s", exc)
         return {"status": "invalid_json"}
 
-    # Ignore status updates (sent, delivered, read)
+    # Process delivery and read status updates
     entry_list = payload.get("entry", [])
     if not entry_list:
         return {"status": "no_entries"}
@@ -113,6 +115,48 @@ async def receive_whatsapp_webhook(
         return {"status": "no_changes"}
 
     value = changes[0].get("value", {})
+
+    # 2a. Track message delivery statuses (sent, delivered, read, failed)
+    statuses = value.get("statuses", [])
+    if statuses:
+        for status_item in statuses:
+            wamid = status_item.get("id")
+            s_val = status_item.get("status")
+            s_ts = status_item.get("timestamp")
+            s_errors = status_item.get("errors", [])
+            if wamid and s_val:
+                msg_stmt = select(ConversationMessage).where(
+                    ConversationMessage.whatsapp_message_id == wamid
+                )
+                msg_record = (await session.execute(msg_stmt)).scalars().first()
+                if msg_record:
+                    # Enforce status progression: pending < sent < delivered < read (never downgrade)
+                    status_rank = {"pending": 0, "sent": 1, "delivered": 2, "read": 3, "failed": 4}
+                    curr_rank = status_rank.get(msg_record.delivery_status or "pending", 0)
+                    new_rank = status_rank.get(s_val, 0)
+
+                    if s_val == "failed" or new_rank >= curr_rank:
+                        msg_record.delivery_status = s_val
+
+                    if s_ts:
+                        try:
+                            parsed_ts = datetime.fromtimestamp(int(s_ts), tz=timezone.utc)
+                            if not msg_record.status_timestamp or parsed_ts >= msg_record.status_timestamp:
+                                msg_record.status_timestamp = parsed_ts
+                        except Exception:
+                            if not msg_record.status_timestamp:
+                                msg_record.status_timestamp = datetime.now(timezone.utc)
+                    else:
+                        if not msg_record.status_timestamp:
+                            msg_record.status_timestamp = datetime.now(timezone.utc)
+
+                    if s_errors and isinstance(s_errors, list):
+                        msg_record.error_code = str(s_errors[0].get("code", ""))
+                        msg_record.error_message = str(s_errors[0].get("message") or s_errors[0].get("title", ""))
+                    await session.commit()
+                    logger.info("Updated delivery status for message %s: %s", wamid, msg_record.delivery_status)
+        return {"status": "statuses_processed"}
+
     messages = value.get("messages", [])
 
     if not messages:
@@ -222,28 +266,84 @@ async def receive_whatsapp_webhook(
     conversation.last_activity_at = datetime.now(timezone.utc)
     await session.commit()
 
-    # 8. State Machine Processing
+    # 8. Check Bot Controls (Pause & Maintenance Mode)
+    bot_settings = await get_or_create_bot_settings(session)
+    if bot_settings.is_paused:
+        logger.info(
+            "Bot is currently paused. Inbound message %s from %s safely recorded.",
+            msg_id,
+            user.id
+        )
+        if bot_settings.maintenance_mode:
+            maint_reply = bot_settings.maintenance_message
+            out_msg_record = ConversationMessage(
+                conversation_id=conversation.id,
+                user_id=user.id,
+                direction=MessageDirection.OUTBOUND,
+                sender=MessageSender.ASSISTANT,
+                content_type="text",
+                delivery_status="pending",
+                status_timestamp=datetime.now(timezone.utc)
+            )
+            out_msg_record.set_content(maint_reply)
+            session.add(out_msg_record)
+            await session.commit()
+
+            try:
+                send_res = await send_whatsapp_text(to_phone=sender_e164, text_body=maint_reply)
+                out_msg_record.delivery_status = "sent"
+                out_msg_record.status_timestamp = datetime.now(timezone.utc)
+                if isinstance(send_res, dict) and send_res.get("messages"):
+                    out_msg_record.whatsapp_message_id = send_res["messages"][0].get("id")
+                await session.commit()
+            except Exception as exc:
+                out_msg_record.delivery_status = "failed"
+                out_msg_record.status_timestamp = datetime.now(timezone.utc)
+                out_msg_record.error_message = str(exc)
+                await session.commit()
+                logger.error("Failed to send maintenance reply to %s: %s", user.id, exc)
+
+            return {"status": "maintenance_mode_replied", "processed_message_id": msg_id}
+
+        return {"status": "bot_paused", "processed_message_id": msg_id}
+
+    # 9. State Machine Processing
     reply_text = await process_conversational_state(
         conversation=conversation,
         user=user,
         user_input=text_body,
-        session=session
+        session=session,
+        bot_settings=bot_settings
     )
 
-    # 9. Record Outbound Reply (Encrypted at rest)
+    # 10. Record Outbound Reply (Encrypted at rest)
     out_msg_record = ConversationMessage(
         conversation_id=conversation.id,
         user_id=user.id,
         direction=MessageDirection.OUTBOUND,
         sender=MessageSender.ASSISTANT,
-        content_type="text"
+        content_type="text",
+        delivery_status="pending",
+        status_timestamp=datetime.now(timezone.utc)
     )
     out_msg_record.set_content(reply_text)
     session.add(out_msg_record)
     await session.commit()
 
-    # 10. Deliver Reply over WhatsApp Graph API
-    await send_whatsapp_text(to_phone=sender_e164, text_body=reply_text)
+    # 11. Deliver Reply over WhatsApp Graph API
+    try:
+        send_res = await send_whatsapp_text(to_phone=sender_e164, text_body=reply_text)
+        out_msg_record.delivery_status = "sent"
+        out_msg_record.status_timestamp = datetime.now(timezone.utc)
+        if isinstance(send_res, dict) and send_res.get("messages"):
+            out_msg_record.whatsapp_message_id = send_res["messages"][0].get("id")
+        await session.commit()
+    except Exception as exc:
+        out_msg_record.delivery_status = "failed"
+        out_msg_record.status_timestamp = datetime.now(timezone.utc)
+        out_msg_record.error_message = str(exc)
+        await session.commit()
+        logger.error("Failed to deliver reply to %s: %s", user.id, exc)
 
     return {"status": "success", "processed_message_id": msg_id}
 
@@ -252,7 +352,8 @@ async def process_conversational_state(
     conversation: Conversation,
     user: User,
     user_input: str,
-    session: AsyncSession
+    session: AsyncSession,
+    bot_settings: Optional[BotSettings] = None
 ) -> str:
     """Core state machine transitioning through consent, profile collection, system switching, and reading generation."""
     clean_text = user_input.strip()
@@ -283,10 +384,26 @@ async def process_conversational_state(
     )
     active_consent = (await session.execute(consent_stmt)).scalars().first()
 
-    # ── Global Intent 1: Revoke Consent / Delete Data ────────────────────────
-    if lowered in ("revoke consent", "stop consent", "delete my data", "delete data", "erase my data"):
+    # ── Global Intent 1: Revoke Consent / Delete Data (Honors WhatsApp STOP/UNSUBSCRIBE) ───
+    normalized_kw = lowered.strip(" .!?,;:")
+    if normalized_kw in (
+        "stop",
+        "unsubscribe",
+        "opt out",
+        "opt-out",
+        "halt",
+        "revoke consent",
+        "stop consent",
+        "delete my data",
+        "delete data",
+        "erase my data",
+    ):
         if active_consent:
             active_consent.revoked_at = datetime.now(timezone.utc)
+            active_consent.granted = False
+            await session.commit()
+        if pref:
+            pref.daily_horoscope_opt_in = False
             await session.commit()
         conversation.current_state = ConversationState.ONBOARDING_CONSENT
         conversation.state_metadata = {}
@@ -479,6 +596,8 @@ async def process_conversational_state(
                 "If you wish to explore your chart in the future, just reply *YES* anytime to get started."
             )
         else:
+            if bot_settings and bot_settings.welcome_message:
+                return bot_settings.welcome_message
             return (
                 "Welcome to the Astrology Assistant! 🌟 I provide personalized astrological readings "
                 "grounded in high-precision astronomical calculations (Vedic and Western).\n\n"
@@ -628,7 +747,8 @@ async def process_conversational_state(
                 timezone_name=details["timezone_name"],
                 user_name=user.whatsapp_name,
                 system=astrology_sys,
-                lang=lang
+                lang=lang,
+                horoscope_intro=bot_settings.horoscope_intro if bot_settings else None
             )
 
         # Check for Dasha Trigger
@@ -677,10 +797,13 @@ async def process_conversational_state(
             chart=chart,
             time_uncertainty=details["time_uncertainty"],
             user_name=user.whatsapp_name,
-            lang=lang
+            lang=lang,
+            general_instructions=bot_settings.general_instructions if bot_settings else None
         )
 
     # Fallback to onboarding
     conversation.current_state = ConversationState.ONBOARDING_CONSENT
     await session.commit()
+    if bot_settings and bot_settings.fallback_message:
+        return bot_settings.fallback_message
     return "Welcome! How can I assist you with your astrological reading today?"

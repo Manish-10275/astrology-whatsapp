@@ -29,6 +29,44 @@
     </div>
   </div>
 
+  <!-- Direct Message Confirmation Modal -->
+  <div id="direct-send-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="direct-send-title">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 id="direct-send-title">Confirm Outbound WhatsApp Message</h4>
+        <button id="direct-send-close-btn" class="btn-close" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="confirm-recipient-card">
+          <div class="recipient-info-row">
+            <span class="text-muted">Recipient:</span>
+            <strong id="modal-recipient-name">...</strong>
+          </div>
+          <div class="recipient-info-row">
+            <span class="text-muted">Phone:</span>
+            <code id="modal-recipient-phone">...</code>
+          </div>
+          <div class="recipient-info-row">
+            <span class="text-muted">24h Window:</span>
+            <span id="modal-recipient-window" class="badge">Checking...</span>
+          </div>
+        </div>
+        <div class="preview-bubble-wrap">
+          <label class="form-label">Message Payload Preview:</label>
+          <div id="modal-message-preview" class="msg-bubble msg-outbound modal-preview-box"></div>
+        </div>
+        <div id="modal-window-warning" class="alert alert-warning hidden" style="margin-top: 12px; font-size: 0.8125rem;">
+          ⚠️ <strong>Meta Policy Notice:</strong> This recipient is outside the 24-hour service window. Sending free-form text may fail or incur Meta policy restrictions.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="direct-send-cancel-btn" class="btn btn-secondary">Cancel</button>
+        <button id="direct-send-confirm-btn" class="btn btn-primary">Send WhatsApp Message</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Trace Modal -->
   <div id="trace-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="trace-modal-title">
     <div class="modal-backdrop"></div>
@@ -172,6 +210,31 @@
             <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
           </svg>
           <span>System Health</span>
+        </button>
+
+        <button class="nav-item" data-section="bot-controls">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+          <span>Bot Controls</span>
+        </button>
+
+        <button class="nav-item" data-section="message-center">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+          <span>Message Center</span>
+        </button>
+
+        <button class="nav-item" data-section="business-profile">
+          <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>Business Profile</span>
         </button>
 
         <button class="nav-item" data-section="settings">
@@ -583,7 +646,353 @@
             </div>
           </section>
 
-          <!-- 7. SECTION: SETTINGS -->
+          <!-- 7. SECTION: BOT CONTROLS & CUSTOM MESSAGES -->
+          <section id="section-bot-controls" class="dashboard-section hidden">
+            <div class="page-header">
+              <h2>Bot Controls &amp; Custom Messages</h2>
+              <p>Manage real-time automated replies, emergency pause/maintenance mode, and customize assistant texts.</p>
+            </div>
+
+            <!-- Bot State Banner Card -->
+            <div class="card" style="margin-bottom: 24px;">
+              <div class="card-title-row">
+                <div>
+                  <h3>Operational Mode</h3>
+                  <span id="bot-state-info" class="text-muted">Loading live status...</span>
+                </div>
+                <span id="bot-state-badge" class="badge badge-success">Active</span>
+              </div>
+              <p class="text-caption" style="margin: 12px 0 16px 0;">
+                Pausing suppresses automated replies while safely recording inbound messages and acknowledging webhooks. Maintenance mode provides a courteous single maintenance notification.
+              </p>
+              <div class="bot-control-actions" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <button id="btn-pause-bot" class="btn btn-secondary">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                  <span>Pause Assistant</span>
+                </button>
+                <button id="btn-maint-bot" class="btn btn-secondary">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                  <span>Maintenance Mode</span>
+                </button>
+                <button id="btn-resume-bot" class="btn btn-primary">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                  <span>Resume Operations</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Custom Message Manager -->
+            <div class="card">
+              <div class="card-title-row">
+                <div>
+                  <h3>Custom Message Manager</h3>
+                  <span class="text-muted">Directly configure bot messages stored securely in the database</span>
+                </div>
+                <button id="btn-reload-settings" class="btn btn-outline btn-sm">Reload Current</button>
+              </div>
+              <form id="bot-settings-form" style="margin-top: 16px;">
+                <div class="form-group" style="margin-bottom: 20px;">
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                    <label for="setting-welcome" style="font-weight: 600;">Welcome &amp; Consent Message</label>
+                    <span id="count-welcome" class="text-muted">0 / 2000</span>
+                  </div>
+                  <textarea id="setting-welcome" rows="4" class="form-textarea" placeholder="Enter greeting and consent request message..."></textarea>
+                  <span class="text-caption">Presented to new users on first message to request GDPR/DPDP consent.</span>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                    <label for="setting-fallback" style="font-weight: 600;">Fallback &amp; Help Message</label>
+                    <span id="count-fallback" class="text-muted">0 / 2000</span>
+                  </div>
+                  <textarea id="setting-fallback" rows="3" class="form-textarea" placeholder="Enter fallback prompt..."></textarea>
+                  <span class="text-caption">Sent when input is unrecognized or user requests general help.</span>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                    <label for="setting-instructions" style="font-weight: 600;">General Assistant Instructions (LLM System Guidance)</label>
+                    <span id="count-instructions" class="text-muted">0 / 4000</span>
+                  </div>
+                  <textarea id="setting-instructions" rows="4" class="form-textarea" placeholder="Enter core assistant persona instructions..."></textarea>
+                  <span class="text-caption">Instructs the OpenAI interpretation engine on tone, ethical boundaries, and persona.</span>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                    <label for="setting-horoscope-intro" style="font-weight: 600;">Daily Horoscope Introduction</label>
+                    <span id="count-horoscope-intro" class="text-muted">0 / 1000</span>
+                  </div>
+                  <input type="text" id="setting-horoscope-intro" class="form-input" placeholder="e.g. Here is your personalized daily horoscope forecast...">
+                  <span class="text-caption">Header prepended to scheduled morning daily horoscope readings.</span>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 24px;">
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                    <label for="setting-maintenance" style="font-weight: 600;">Maintenance Mode Message</label>
+                    <span id="count-maintenance" class="text-muted">0 / 2000</span>
+                  </div>
+                  <textarea id="setting-maintenance" rows="3" class="form-textarea" placeholder="Enter maintenance notice..."></textarea>
+                  <span class="text-caption">Sent to incoming messages during scheduled maintenance windows.</span>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                  <button type="submit" id="btn-save-settings" class="btn btn-primary">
+                    <span class="btn-text">Save Message Settings</span>
+                    <span class="spinner hidden"></span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <!-- 8. SECTION: MESSAGE CENTER -->
+          <section id="section-message-center" class="dashboard-section hidden">
+            <div class="page-header">
+              <h2>Message Center</h2>
+              <p>Direct outbound messaging to individual eligible WhatsApp users with 24-hour service window compliance.</p>
+            </div>
+
+            <!-- Composer Card -->
+            <div class="card" style="margin-bottom: 24px;">
+              <div class="card-title-row">
+                <div>
+                  <h3>Direct Outbound Composer</h3>
+                  <span class="text-muted">Send personalized notifications, reading follow-ups, or support replies</span>
+                </div>
+              </div>
+
+              <div class="composer-grid" style="margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <!-- Left: Recipient & Input -->
+                <div class="composer-form-col">
+                  <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="direct-recipient-select" style="font-weight: 600;">Eligible Recipient</label>
+                    <select id="direct-recipient-select" class="form-select">
+                      <option value="">Select an active opted-in user...</option>
+                    </select>
+                  </div>
+
+                  <!-- 24-Hour Service Window Status -->
+                  <div id="direct-window-status-box" class="window-status-box" style="padding: 12px; border-radius: var(--radius-sm); background: var(--color-blue-soft); margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <span style="font-size: 0.8125rem; font-weight: 600;">24h Meta Customer Service Window:</span>
+                      <span id="direct-window-badge" class="badge">Checking...</span>
+                    </div>
+                    <div id="direct-window-desc" style="font-size: 0.8125rem; color: var(--color-text-secondary); margin-top: 4px;">
+                      Select a recipient to verify window status.
+                    </div>
+                  </div>
+
+                  <!-- Policy Compliance Alert (When 24h Window Expired) -->
+                  <div id="direct-policy-alert" class="hidden" style="margin-bottom: 16px; padding: 12px; background: #FFF3CD; border: 1px solid #FFEBAA; border-radius: var(--radius-sm); color: #856404; font-size: 0.8125rem; line-height: 1.4;">
+                    <strong>⚠️ 24-Hour Customer Service Window Expired:</strong><br>
+                    Under Meta WhatsApp Cloud API policy, free-form text messaging is strictly blocked outside 24 hours.
+                    You must send an approved template below or await the user's incoming reply to re-open the window.
+                  </div>
+
+                  <!-- Free-Form Message Composer (Active Window Only) -->
+                  <div id="direct-freeform-section">
+                    <div class="form-group" style="margin-bottom: 16px;">
+                      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                        <label for="direct-message-input" style="font-weight: 600;">Message Content (Free-Form Text)</label>
+                        <span id="direct-char-count" class="text-muted">0 / 2000</span>
+                      </div>
+                      <textarea id="direct-message-input" rows="5" class="form-textarea" placeholder="Type direct WhatsApp message..."></textarea>
+                      <span class="text-caption">Supports WhatsApp markdown (*bold*, _italic_, ~strikethrough~). Only permitted within 24h window.</span>
+                    </div>
+
+                    <button id="btn-open-send-modal" class="btn btn-primary" style="width: 100%;">
+                      <span>Review &amp; Send Direct Message</span>
+                    </button>
+                  </div>
+
+                  <!-- Approved Template Composer (Compliant Re-Engagement Outside 24h Window) -->
+                  <div id="direct-template-section" class="hidden" style="margin-top: 16px; padding: 14px; border: 1px solid var(--color-sky-strong); border-radius: var(--radius-sm); background: #F8FAFC;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                      <span style="font-weight: 600; font-size: 0.875rem;">Send Approved Meta Template</span>
+                      <span class="badge badge-info">Template Re-engagement</span>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 10px;">
+                      <label for="template-name-select" style="font-weight: 600; font-size: 0.8125rem;">Template Name</label>
+                      <select id="template-name-select" class="form-select">
+                        <option value="daily_horoscope_update">daily_horoscope_update</option>
+                      </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 10px;">
+                      <label for="template-lang-select" style="font-weight: 600; font-size: 0.8125rem;">Language</label>
+                      <select id="template-lang-select" class="form-select">
+                        <option value="en">English (en)</option>
+                        <option value="hi">Hindi (hi)</option>
+                      </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 8px;">
+                      <label for="template-param-greeting" style="font-weight: 600; font-size: 0.8125rem;">Parameter 1 (User Greeting / Name)</label>
+                      <input type="text" id="template-param-greeting" class="form-input" placeholder="e.g. Seeker">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 8px;">
+                      <label for="template-param-date" style="font-weight: 600; font-size: 0.8125rem;">Parameter 2 (Date)</label>
+                      <input type="text" id="template-param-date" class="form-input" placeholder="e.g. 27 Oct 2026">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 8px;">
+                      <label for="template-param-summary" style="font-weight: 600; font-size: 0.8125rem;">Parameter 3 (Sign / Summary)</label>
+                      <input type="text" id="template-param-summary" class="form-input" placeholder="e.g. Aries Moon | Ashwini Nakshatra">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                      <label for="template-param-body" style="font-weight: 600; font-size: 0.8125rem;">Parameter 4 (Horoscope / Transit Forecast)</label>
+                      <textarea id="template-param-body" rows="3" class="form-textarea" placeholder="Enter personalized transit forecast..."></textarea>
+                    </div>
+                    <button type="button" id="btn-send-template" class="btn btn-primary" style="width: 100%;">
+                      <span class="btn-text">Review &amp; Send Approved Template</span>
+                      <span class="spinner hidden"></span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Right: WhatsApp Message Preview -->
+                <div class="composer-preview-col">
+                  <label style="font-weight: 600; display: block; margin-bottom: 8px;">WhatsApp Chat Preview</label>
+                  <div class="whatsapp-phone-mockup" style="background: #EFEAE2; border-radius: var(--radius-md); padding: 20px; border: 1px solid var(--color-border); min-height: 260px; display: flex; flex-direction: column; justify-content: flex-end;">
+                    <div id="direct-preview-bubble" class="msg-bubble msg-outbound" style="align-self: flex-end; max-width: 90%; background: #D9FDD3; color: #111B21; box-shadow: 0 1px 0.5px rgba(11,20,26,.13);">
+                      <span id="direct-preview-text" style="white-space: pre-wrap; font-size: 0.875rem;">Your message preview will appear here...</span>
+                      <div style="text-align: right; font-size: 0.6875rem; color: #667781; margin-top: 4px;">
+                        <span id="direct-preview-time">12:00</span> ✓✓
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Outbound Delivery Tracking Table -->
+            <div class="card">
+              <div class="card-title-row">
+                <div>
+                  <h3>Direct Outbound History &amp; Delivery Tracking</h3>
+                  <span class="text-muted">Live delivery status updates (sent, delivered, read, failed)</span>
+                </div>
+                <button id="btn-refresh-direct-history" class="btn btn-secondary btn-sm">Refresh Statuses</button>
+              </div>
+
+              <div id="direct-history-loading" class="loading-state hidden">
+                <span class="spinner"></span>
+                <p>Loading outbound delivery records...</p>
+              </div>
+              <div id="direct-history-empty" class="empty-state hidden">
+                <p>No direct outbound messages recorded yet.</p>
+              </div>
+
+              <div class="table-responsive" style="margin-top: 16px;">
+                <table id="direct-history-table" class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Recipient</th>
+                      <th>Message Preview</th>
+                      <th>Delivery Status</th>
+                      <th>Status Time</th>
+                      <th>Created At</th>
+                    </tr>
+                  </thead>
+                  <tbody id="direct-history-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 9. SECTION: BUSINESS PROFILE -->
+          <section id="section-business-profile" class="dashboard-section hidden">
+            <div class="page-header">
+              <h2>WhatsApp Business Profile</h2>
+              <p>Configure official WhatsApp Business profile details and avatar via Meta Cloud API.</p>
+            </div>
+
+            <div class="breakdown-grid" style="margin-bottom: 24px;">
+              <!-- Profile Picture Card -->
+              <div class="card">
+                <div class="card-title-row">
+                  <h3>Profile Picture</h3>
+                  <span id="profile-picture-badge" class="badge badge-info">Avatar</span>
+                </div>
+                <div style="display: flex; gap: 20px; align-items: center; margin: 20px 0;">
+                  <div id="profile-picture-wrap" style="width: 100px; height: 100px; border-radius: 50%; overflow: hidden; background: var(--color-blue-soft); border: 2px solid var(--color-sky-strong); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <img id="profile-avatar-img" src="" alt="Business Profile" class="hidden" style="width: 100%; height: 100%; object-fit: cover;">
+                    <span id="profile-avatar-placeholder" style="font-size: 2rem;">🌟</span>
+                  </div>
+                  <div>
+                    <input type="file" id="profile-photo-input" accept="image/jpeg,image/png" style="display: none;">
+                    <button type="button" id="btn-select-photo" class="btn btn-secondary btn-sm" style="margin-bottom: 8px;">
+                      <span>Choose New Image</span>
+                    </button>
+                    <p class="text-caption">Max file size: 5 MB. Formats: JPEG or PNG. Square aspect ratio recommended.</p>
+                    <div id="photo-upload-feedback" class="text-caption" style="margin-top: 6px;"></div>
+                  </div>
+                </div>
+                <button type="button" id="btn-upload-photo" class="btn btn-primary btn-sm hidden">
+                  <span class="btn-text">Upload to Meta Cloud</span>
+                  <span class="spinner hidden"></span>
+                </button>
+              </div>
+
+              <!-- Profile Details Card -->
+              <div class="card">
+                <div class="card-title-row">
+                  <h3>Business Details</h3>
+                  <span id="profile-sync-badge" class="badge badge-info">Checking Connection...</span>
+                </div>
+
+                <form id="profile-edit-form" style="margin-top: 16px;">
+                  <div class="form-group" style="margin-bottom: 14px;">
+                    <label for="profile-about" style="font-weight: 600;">About / Tagline (max 139)</label>
+                    <input type="text" id="profile-about" maxlength="139" class="form-input" placeholder="e.g. Astrology Assistant Grounded in Precision Calculations">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 14px;">
+                    <label for="profile-vertical" style="font-weight: 600;">Industry / Category</label>
+                    <select id="profile-vertical" class="form-select">
+                      <option value="ENTERTAINMENT">Entertainment</option>
+                      <option value="PROF_SERVICES">Professional Services</option>
+                      <option value="EDUCATION">Education</option>
+                      <option value="HEALTH">Health &amp; Wellness</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 14px;">
+                    <label for="profile-description" style="font-weight: 600;">Description (max 512)</label>
+                    <textarea id="profile-description" rows="3" maxlength="512" class="form-textarea" placeholder="Comprehensive business description..."></textarea>
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 14px;">
+                    <label for="profile-email" style="font-weight: 600;">Business Email</label>
+                    <input type="email" id="profile-email" maxlength="128" class="form-input" placeholder="contact@example.com">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 14px;">
+                    <label for="profile-address" style="font-weight: 600;">Business Address (max 256)</label>
+                    <input type="text" id="profile-address" maxlength="256" class="form-input" placeholder="Street Address, City, Country">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 14px;">
+                    <label for="profile-website1" style="font-weight: 600;">Primary Website</label>
+                    <input type="url" id="profile-website1" maxlength="256" class="form-input" placeholder="https://astro.apps.pixellab.media">
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 20px;">
+                    <label for="profile-website2" style="font-weight: 600;">Secondary Website</label>
+                    <input type="url" id="profile-website2" maxlength="256" class="form-input" placeholder="https://pixellab.media">
+                  </div>
+
+                  <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                    <button type="submit" id="btn-save-profile" class="btn btn-primary">
+                      <span class="btn-text">Save Profile to Meta</span>
+                      <span class="spinner hidden"></span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </section>
+
+          <!-- 10. SECTION: SETTINGS -->
           <section id="section-settings" class="dashboard-section hidden">
             <div class="page-header">
               <h2>Platform Settings & Environment</h2>

@@ -15,6 +15,7 @@ from sqlalchemy import select
 
 from api.config import get_settings
 from api.db.models.user import User, UserPreferences, UserStatus, AstrologySystemEnum
+from api.db.models.consent import ConsentRecord
 from api.db.models.birth_profile import BirthProfile
 from api.db.models.audit import AuditEvent
 from api.db.models.conversation import (
@@ -97,7 +98,18 @@ async def dispatch_daily_horoscopes(
         }
 
         for user, pref in user_pairs:
-            # 1. Check Primary Birth Profile & Timezone
+            # 1. Check Affirmative Consent Record (skip if revoked)
+            consent_stmt = select(ConsentRecord).where(
+                ConsentRecord.user_id == user.id,
+                ConsentRecord.purpose == "birth_data_processing",
+            )
+            consent = (await session.execute(consent_stmt)).scalars().first()
+            if consent and (consent.revoked_at is not None or not consent.granted):
+                stats["errors"] += 1
+                logger.warning("User %s has revoked consent; skipping daily horoscope.", user.id)
+                continue
+
+            # 2. Check Primary Birth Profile & Timezone
             prof_stmt = select(BirthProfile).where(
                 BirthProfile.user_id == user.id,
                 BirthProfile.is_primary == True
@@ -220,11 +232,12 @@ async def dispatch_daily_horoscopes(
         # 8. Record Non-PII Audit Event
         try:
             audit = AuditEvent(
+                actor_id="system_scheduler",
+                actor_role="system",
                 action="HOROSCOPE_BATCH_DISPATCH",
-                user_id=None,
-                actor="scheduler",
-                ip_address=None,
-                details=stats
+                target_entity="batch",
+                target_id="daily_horoscope",
+                details=stats,
             )
             session.add(audit)
             await session.commit()

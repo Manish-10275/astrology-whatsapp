@@ -30,18 +30,26 @@ ROLE_PERMISSIONS = {
         "audit:read",
         "dashboard:read",
         "dashboard:trigger",
+        "settings:read",
+        "settings:write",
+        "bot:control",
+        "messages:send",
+        "profile:manage",
     ],
     AdminRole.SUPPORT: [
         "user:read",
         "consent:read",
         "audit:read",
         "dashboard:read",
+        "settings:read",
+        "messages:send",
     ],
     AdminRole.ASTROLOGY_QA: [
         "user:read",
         "profile:read_sensitive",
         "audit:read",
         "dashboard:read",
+        "settings:read",
     ],
     AdminRole.COMPLIANCE: [
         "user:read",
@@ -50,6 +58,7 @@ ROLE_PERMISSIONS = {
         "deletion:execute",
         "audit:read",
         "dashboard:read",
+        "settings:read",
     ],
 }
 

@@ -93,3 +93,77 @@ async def test_cascade_deletion_on_user(db_session: AsyncSession):
         await db_session.execute(select(BirthProfile).where(BirthProfile.user_id == user.id))
     ).scalars().first()
     assert b_check is None
+
+
+@pytest.mark.asyncio
+async def test_bot_settings_singleton_and_defaults(db_session: AsyncSession):
+    """Verify BotSettings model creates singleton with valid defaults and unique key constraint."""
+    from api.db.models.bot_settings import BotSettings, DEFAULT_WELCOME_MESSAGE
+
+    # Clean existing default row if left from prior test runs
+    existing = (await db_session.execute(select(BotSettings).where(BotSettings.key == "default"))).scalars().first()
+    if existing:
+        await db_session.delete(existing)
+        await db_session.commit()
+
+    settings1 = BotSettings(key="default")
+    db_session.add(settings1)
+    await db_session.commit()
+    await db_session.refresh(settings1)
+
+    assert settings1.is_paused is False
+    assert settings1.maintenance_mode is False
+    assert settings1.welcome_message == DEFAULT_WELCOME_MESSAGE
+    assert "Astrology Assistant" in settings1.welcome_message
+
+    # Duplicate key must be rejected
+    settings2 = BotSettings(key="default")
+    db_session.add(settings2)
+    with pytest.raises(IntegrityError):
+        await db_session.commit()
+    await db_session.rollback()
+
+
+@pytest.mark.asyncio
+async def test_conversation_message_delivery_status_tracking(db_session: AsyncSession):
+    """Verify ConversationMessage stores and updates delivery status fields."""
+    from api.db.models.conversation import Conversation, ConversationMessage, MessageDirection, MessageSender
+
+    user = User(
+        phone_hash=compute_phone_hash("+918888777766"),
+        encrypted_phone=encrypt_field("+918888777766"),
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+
+    conv = Conversation(user_id=user.id)
+    db_session.add(conv)
+    await db_session.commit()
+    await db_session.refresh(conv)
+
+    msg = ConversationMessage(
+        conversation_id=conv.id,
+        user_id=user.id,
+        direction=MessageDirection.OUTBOUND,
+        sender=MessageSender.ASSISTANT,
+        whatsapp_message_id="wamid.test_delivery_123",
+        delivery_status="sent",
+    )
+    msg.set_content("Hello seeker, your chart is ready.")
+    db_session.add(msg)
+    await db_session.commit()
+    await db_session.refresh(msg)
+
+    assert msg.delivery_status == "sent"
+    assert msg.status_timestamp is None
+
+    # Simulate Meta webhook delivery update
+    from datetime import datetime, timezone
+    msg.delivery_status = "delivered"
+    msg.status_timestamp = datetime.now(timezone.utc)
+    await db_session.commit()
+    await db_session.refresh(msg)
+
+    assert msg.delivery_status == "delivered"
+    assert msg.status_timestamp is not None

@@ -125,6 +125,12 @@ class ConversationMessage(Base):
     encrypted_content: Mapped[str] = mapped_column(Text, nullable=False)
     content_type: Mapped[str] = mapped_column(String(32), default="text", nullable=False)
 
+    # Delivery tracking fields (populated via Meta webhooks & message center)
+    delivery_status: Mapped[Optional[str]] = mapped_column(String(32), default="sent", index=True, nullable=True)
+    status_timestamp: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    error_code: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

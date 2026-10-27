@@ -1,6 +1,7 @@
 """WhatsApp Cloud API client, signature verification, and deduplication utilities."""
 
 import os
+import uuid
 import hmac
 import hashlib
 import logging
@@ -84,7 +85,11 @@ async def send_whatsapp_text(
             "WhatsApp credentials not configured; skipping live Meta Graph API call for recipient ending in ...%s",
             recipient_clean[-4:] if len(recipient_clean) >= 4 else "XXXX"
         )
-        return {"status": "mocked", "recipient": recipient_clean}
+        return {
+            "status": "mocked",
+            "recipient": recipient_clean,
+            "messages": [{"id": f"mock_wamid_{uuid.uuid4().hex[:12]}"}],
+        }
 
     url = f"https://graph.facebook.com/{settings.WHATSAPP_API_VERSION}/{phone_number_id}/messages"
     headers = {
